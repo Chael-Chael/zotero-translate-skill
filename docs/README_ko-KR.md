@@ -13,16 +13,20 @@
 
 # Zotero Translate Skill
 
-Zotero PDF 첨부 파일을 중국어로 번역하면서 원본 PDF 레이아웃을 최대한 유지하는 skill입니다. 이 skill은 `pdf2zh` / BabelDOC의 분할 및 렌더링 기능과 **현재 채팅 번역 루프**를 결합합니다. 활성 agent 대화가 추출된 텍스트 세그먼트를 번역하고, skill이 mono / dual PDF를 렌더링한 뒤 Zotero에 다시 첨부합니다.
+Zotero PDF 첨부 파일을 중국어로 번역하면서 원본 PDF 레이아웃을 최대한 유지하는 skill입니다. 이 skill은 Codex에만 국한되지 않으며, 로컬 skills를 로드할 수 있는 모든 agent에서 사용할 수 있습니다. `pdf2zh` / BabelDOC의 분할 및 렌더링 기능과 **현재 채팅 번역 루프**를 결합합니다. 활성 agent 대화가 추출된 텍스트 세그먼트를 번역하고, skill이 mono / dual PDF를 렌더링한 뒤 Zotero에 다시 첨부합니다.
+
+핵심 장점은 간단한 설치입니다. Zotero 번역 plugin을 설치하거나, PDF 번역 환경을 수동으로 구성하거나, `pdf2zh` / BabelDOC를 미리 준비할 필요가 없습니다. skill을 설치하면 첫 실행 시 로컬 runtime을 자동으로 준비합니다.
 
 학술 논문, 기술 보고서, 긴 PDF 워크플로에 적합하며, 수식, 인용, placeholder, rich-text tag를 보존해야 하는 경우에 특히 유용합니다.
 
-> 이 저장소는 Codex skill 저장소입니다. 설치 가능한 skill은 [`skills/zotero-translate`](../skills/zotero-translate)에 있습니다.
+> 이 저장소는 agent skill 저장소입니다. 설치 가능한 skill은 [`skills/zotero-translate`](../skills/zotero-translate)에 있습니다.
 
 ## 주요 기능
 
 - **현재 채팅에서만 번역**: provider key가 필요 없고, 외부 번역 서비스나 백그라운드 LLM 프로세스를 사용하지 않습니다.
 - **PDF 레이아웃 보존**: 분할, 수식/레이아웃 보호, PDF 생성은 `pdf2zh-next` / BabelDOC에 맡깁니다.
+- **Zotero plugin 불필요**: agent의 Zotero connector를 통해 Zotero Desktop을 사용합니다. 별도의 Zotero 번역 plugin은 필요하지 않습니다.
+- **수동 환경 구성 불필요**: skill은 첫 실행 시 로컬 venv와 필요한 runtime을 준비합니다.
 - **Zotero 중심 workflow**: Zotero PDF 첨부 파일에서 세그먼트를 수집하고, 최종 PDF를 렌더링한 뒤 원래 Zotero item에 첨부합니다.
 - **크로스 플랫폼 스크립트**: Python entrypoint는 Windows, macOS, Linux에서 동작합니다. Windows 사용자를 위한 PowerShell wrapper도 제공합니다.
 - **mono, dual, both**: 기본값은 중국어 전용 PDF와 bilingual PDF를 모두 생성합니다.
@@ -82,9 +86,11 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 복사 후 Codex를 재시작하세요.
 
+Codex는 일반적인 local skill directory가 있어 예시로 표시했습니다. 이 workflow 자체는 Codex 전용이 아닙니다.
+
 ### Option 3: 다른 agent에 수동 설치
 
-[`skills/zotero-translate`](../skills/zotero-translate)를 agent가 사용하는 skill directory에 복사하거나, agent가 `SKILL.md`를 직접 참조하게 하세요. deterministic workflow scripts는 Python 기반이며 portable합니다. 다만 Zotero 첨부에는 Zotero Desktop connector 또는 동등한 로컬 Zotero automation 도구가 필요합니다.
+[`skills/zotero-translate`](../skills/zotero-translate)를 agent가 사용하는 skill directory에 복사하거나, agent가 `SKILL.md`를 직접 참조하게 하세요. deterministic workflow scripts는 Python 기반이며 portable합니다. 다만 Zotero 첨부에는 Zotero Desktop connector 또는 동등한 로컬 Zotero automation 도구가 필요합니다. Zotero 번역 plugin은 필요하지 않습니다.
 
 ## 요구 사항
 
@@ -104,6 +110,8 @@ skills/zotero-translate/.runtime/venv
 ```
 
 이 디렉터리들은 version control에서 제외됩니다.
+
+`pdf2zh`, BabelDOC, Zotero 번역 plugin을 미리 설치할 필요는 없습니다. skill이 자체 directory 아래에 runtime을 준비합니다.
 
 ## Quick Start
 

@@ -13,16 +13,20 @@
 
 # Zotero Translate Skill
 
-将 Zotero PDF 附件翻译成中文，同时尽量保留原 PDF 的排版。这个 skill 结合了 `pdf2zh` / BabelDOC 的分段与渲染能力，以及 **当前对话翻译循环**：当前 agent 对话负责翻译抽取出的文本片段，skill 再渲染 mono / dual PDF，并把结果挂回 Zotero。
+将 Zotero PDF 附件翻译成中文，同时尽量保留原 PDF 的排版。这个 skill 适用于任何支持本地 skills 的 agent，不限于 Codex。它结合了 `pdf2zh` / BabelDOC 的分段与渲染能力，以及 **当前对话翻译循环**：当前 agent 对话负责翻译抽取出的文本片段，skill 再渲染 mono / dual PDF，并把结果挂回 Zotero。
+
+核心价值是安装简单：不需要安装 Zotero 翻译插件，不需要手工配置 PDF 翻译环境，也不需要预先配置 `pdf2zh` / BabelDOC。安装 skill 后，它会在首次运行时自举本地运行时。
 
 它适合学术论文、技术报告和长 PDF 工作流，尤其适合需要保护公式、引用、占位符和富文本标签的场景。
 
-> 这是一个 Codex skill 仓库。可安装的 skill 位于 [`skills/zotero-translate`](../skills/zotero-translate)。
+> 这是一个 agent skill 仓库。可安装的 skill 位于 [`skills/zotero-translate`](../skills/zotero-translate)。
 
 ## 特性
 
 - **只使用当前对话翻译**：不需要 provider key，不调用外部翻译服务，不启动后台 LLM 进程。
 - **保留 PDF 排版**：分段、公式/版式保护和 PDF 生成交给 `pdf2zh-next` / BabelDOC。
+- **无需 Zotero 插件**：通过 agent 的 Zotero connector 使用 Zotero Desktop，不需要额外安装 Zotero 翻译插件。
+- **无需手工配置环境**：skill 首次运行会创建本地 venv 并安装所需运行时。
 - **Zotero 优先**：从 Zotero PDF 附件收集文本，渲染最终 PDF，并挂回原 Zotero 条目。
 - **跨平台脚本**：Python 主入口支持 Windows、macOS、Linux；Windows 用户仍可使用 PowerShell wrapper。
 - **mono、dual 或 both**：默认同时生成中文译文 PDF 和双语 PDF。
@@ -82,9 +86,11 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 复制后重启 Codex。
 
+这里列出 Codex 是因为它有常见的本地 skill 目录；workflow 本身并不绑定 Codex。
+
 ### 方式 3：其它 agent 手动安装
 
-把 [`skills/zotero-translate`](../skills/zotero-translate) 复制到你的 agent 使用的 skill 目录，或让 agent 指向其中的 `SKILL.md`。确定性工作流脚本是 Python 跨平台实现；但 Zotero 写回需要你的 agent 具备 Zotero Desktop connector 或等价的本地 Zotero 自动化能力。
+把 [`skills/zotero-translate`](../skills/zotero-translate) 复制到你的 agent 使用的 skill 目录，或让 agent 指向其中的 `SKILL.md`。确定性工作流脚本是 Python 跨平台实现；但 Zotero 写回需要你的 agent 具备 Zotero Desktop connector 或等价的本地 Zotero 自动化能力。不需要 Zotero 翻译插件。
 
 ## 依赖
 
@@ -104,6 +110,8 @@ skills/zotero-translate/.runtime/venv
 ```
 
 这些目录已被排除在版本控制之外。
+
+你不需要预装 `pdf2zh`、BabelDOC 或 Zotero 翻译插件；skill 会在自己的目录下准备运行时。
 
 ## 快速开始
 

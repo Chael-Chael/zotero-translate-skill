@@ -26,5 +26,5 @@
   <rect x="1086" y="278" width="62" height="12" rx="6" fill="#CBD5E1"/>
   <rect x="1086" y="302" width="74" height="12" rx="6" fill="#CBD5E1"/>
   <text x="78" y="376" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#0F172A">Zotero Translate Skill</text>
-  <text x="392" y="376" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#475569">layout-preserving PDF translation without translation API keys</text>
+  <text x="392" y="376" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#475569">layout-preserving PDF translation, no Zotero plugin setup</text>
 </svg>

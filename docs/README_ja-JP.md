@@ -13,16 +13,20 @@
 
 # Zotero Translate Skill
 
-Zotero の PDF 添付ファイルを中国語へ翻訳しながら、元の PDF レイアウトをできるだけ維持する skill です。`pdf2zh` / BabelDOC の分割・レンダリング機能と、**現在のチャットで行う翻訳ループ**を組み合わせています。現在の agent 会話が抽出されたテキストセグメントを翻訳し、この skill が mono / dual PDF をレンダリングして Zotero に添付します。
+Zotero の PDF 添付ファイルを中国語へ翻訳しながら、元の PDF レイアウトをできるだけ維持する skill です。この skill は Codex だけでなく、ローカル skills を読み込める任意の agent で使えます。`pdf2zh` / BabelDOC の分割・レンダリング機能と、**現在のチャットで行う翻訳ループ**を組み合わせています。現在の agent 会話が抽出されたテキストセグメントを翻訳し、この skill が mono / dual PDF をレンダリングして Zotero に添付します。
+
+大きな利点はセットアップの軽さです。Zotero 翻訳 plugin をインストールしたり、PDF 翻訳環境を手作業で設定したり、`pdf2zh` / BabelDOC を事前に準備したりする必要はありません。skill をインストールすると、初回実行時にローカル runtime を自動で準備します。
 
 学術論文、技術レポート、長い PDF ワークフローに向いています。特に、数式、引用、プレースホルダー、リッチテキストタグを保護したい場合に便利です。
 
-> これは Codex skill リポジトリです。インストール対象の skill は [`skills/zotero-translate`](../skills/zotero-translate) にあります。
+> これは agent skill リポジトリです。インストール対象の skill は [`skills/zotero-translate`](../skills/zotero-translate) にあります。
 
 ## 主な特徴
 
 - **現在のチャットだけで翻訳**：provider key は不要。外部翻訳サービスやバックグラウンド LLM プロセスを使いません。
 - **PDF レイアウトを維持**：分割、数式/レイアウト保護、PDF 生成は `pdf2zh-next` / BabelDOC に委譲します。
+- **Zotero plugin 不要**：agent の Zotero connector から Zotero Desktop を使います。別の Zotero 翻訳 plugin は不要です。
+- **手動環境設定不要**：skill は初回実行時にローカル venv と必要な runtime を準備します。
 - **Zotero 中心の workflow**：Zotero の PDF 添付から収集し、最終 PDF をレンダリングして元の Zotero item に添付します。
 - **クロスプラットフォーム**：Python entrypoint は Windows、macOS、Linux に対応。Windows 向け PowerShell wrapper もあります。
 - **mono、dual、both**：既定では中国語のみ PDF と bilingual PDF の両方を生成します。
@@ -82,9 +86,11 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 コピー後、Codex を再起動してください。
 
+Codex は一般的な local skill directory を持つため例として示しています。この workflow 自体は Codex 専用ではありません。
+
 ### Option 3: 他の agent への手動インストール
 
-[`skills/zotero-translate`](../skills/zotero-translate) を agent が使用する skill directory にコピーするか、agent に `SKILL.md` を参照させてください。決定的な workflow script は Python ベースで portable ですが、Zotero への添付には Zotero Desktop connector または同等のローカル Zotero automation が必要です。
+[`skills/zotero-translate`](../skills/zotero-translate) を agent が使用する skill directory にコピーするか、agent に `SKILL.md` を参照させてください。決定的な workflow script は Python ベースで portable ですが、Zotero への添付には Zotero Desktop connector または同等のローカル Zotero automation が必要です。Zotero 翻訳 plugin は不要です。
 
 ## Requirements
 
@@ -104,6 +110,8 @@ skills/zotero-translate/.runtime/venv
 ```
 
 これらは version control から除外されています。
+
+`pdf2zh`、BabelDOC、Zotero 翻訳 plugin を事前にインストールする必要はありません。skill が自分の directory の下で runtime を準備します。
 
 ## Quick Start
 

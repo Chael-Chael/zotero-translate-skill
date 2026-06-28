@@ -10,13 +10,16 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2ea44f)
 ![Translation](https://img.shields.io/badge/translation-current--chat-orange)
+![Setup](https://img.shields.io/badge/setup-install%20skill%20only-7C3AED)
 ![Zotero](https://img.shields.io/badge/Zotero-PDF%20attachments-BD1F2D)
 
 # Zotero Translate Skill
 
 **Translate Zotero PDF attachments into Chinese while preserving the original PDF layout.**
 
-This repository packages a reusable agent skill that combines the layout-preserving PDF workflow of `pdf2zh` / BabelDOC with a **current-chat translation loop**. The active conversation translates the collected segments, while the scripts handle PDF segmentation, rendering, Zotero attachment guidance, and cleanup.
+This repository packages a reusable skill for any agent that supports skill-style workflows. It combines the layout-preserving PDF workflow of `pdf2zh` / BabelDOC with a **current-chat translation loop**. The active conversation translates the collected segments, while the scripts handle PDF segmentation, rendering, Zotero attachment guidance, and cleanup.
+
+The main benefit is simple setup: users do **not** need to install a Zotero plugin, configure a translation provider, or prepare a separate PDF translation environment. Install the skill, let it bootstrap its own runtime, and run it from your agent.
 
 [Install](#31-installation) · [Quick Start](#32-quick-start) · [CLI Usage](#35-direct-cli-usage) · [Technical Details](#4-technical-details) · [Troubleshooting](#47-troubleshooting)
 
@@ -28,7 +31,7 @@ This repository packages a reusable agent skill that combines the layout-preserv
 
 Zotero Translate Skill is for academic reading workflows where the PDF layout matters. It collects real text segments from a Zotero PDF attachment, asks the active agent conversation to translate those segments, then renders final PDFs and attaches them back to the same Zotero parent item.
 
-Unlike ordinary one-shot PDF translation prompts, this skill keeps a deterministic run manifest and uses `pdf2zh-next` / BabelDOC for the fragile parts: segmentation, placeholder preservation, formula/layout handling, and final PDF generation.
+Unlike ordinary one-shot PDF translation prompts, this skill keeps a deterministic run manifest and uses `pdf2zh-next` / BabelDOC for the fragile parts: segmentation, placeholder preservation, formula/layout handling, and final PDF generation. Compared with a traditional Zotero plugin workflow, the user-facing setup is lighter: install a skill once, then invoke it from whichever compatible agent you already use.
 
 <p align="center">
   <img src="./assets/current-chat-pipeline.svg" alt="Current-chat PDF translation pipeline" width="92%">
@@ -38,8 +41,11 @@ Unlike ordinary one-shot PDF translation prompts, this skill keeps a determinist
 
 | Feature | Description |
 | --- | --- |
+| Agent-agnostic skill workflow | Designed for any agent that can load local skills and run bundled scripts, not only Codex. |
 | Current-chat translation | The active agent conversation writes `translations.jsonl`; no provider-specific translation credentials are required. |
-| Layout-preserving rendering | PDF segmentation and rendering are delegated to `pdf2zh-next` / BabelDOC. |
+| Layout-preserving rendering | PDF segmentation, placeholder protection, formula/layout handling, and rendering are delegated to `pdf2zh-next` / BabelDOC. |
+| No Zotero plugin setup | Use Zotero Desktop through your agent connector; no separate Zotero translation plugin is required. |
+| Self-contained runtime | The skill bootstraps its own Python venv and BabelDOC assets on first use. |
 | Zotero-native output | Final PDFs are attached to the original Zotero parent item. |
 | Full PDF by default | Unless the prompt specifies pages, the skill translates the whole PDF. |
 | Mono + dual by default | Produces translated-only and bilingual PDFs unless the user asks for one mode. |
@@ -101,11 +107,13 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 Restart Codex after copying the skill.
 
+This option is shown because Codex has a common local skill directory. The workflow itself is not Codex-specific.
+
 #### Option C: Other Agents
 
 Copy [`skills/zotero-translate`](./skills/zotero-translate) into the skill directory used by your agent, or point the agent at `skills/zotero-translate/SKILL.md`.
 
-The deterministic workflow is Python-based and portable, but Zotero attachment requires your agent to have a Zotero Desktop connector or equivalent local Zotero automation tool.
+The deterministic workflow is Python-based and portable. A compatible agent only needs to read the skill instructions, run local Python scripts, and access Zotero Desktop through a connector or equivalent local automation tool. No Zotero plugin is required.
 
 ### 3.2 Quick Start
 
@@ -142,6 +150,8 @@ Default behavior:
 | Zotero-capable agent connector | Reads selected items and attaches final PDFs. |
 | Internet on first runtime setup | Installs `pdf2zh-next`, `PyMuPDF`, and BabelDOC assets. |
 | Enough current-chat context | The active conversation translates `segments.jsonl`. |
+
+You do not need to pre-install `pdf2zh`, BabelDOC, or a Zotero translation plugin. The skill prepares its own runtime under the skill directory.
 
 First runtime setup creates:
 
@@ -285,7 +295,7 @@ Important boundaries:
 
 ### 5.1 Acknowledgements
 
-This skill is inspired by the layout-preserving PDF workflow of [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README organization also follows the style of public skill repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
+This skill is built around the layout-preserving PDF workflow pioneered by [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README organization also follows the style of public skill repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
 
 This repository is not affiliated with Zotero, PDFMathTranslate, BabelDOC, Greensock, or Obsidian.
 

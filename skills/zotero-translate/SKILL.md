@@ -1,11 +1,11 @@
 ---
 name: zotero-translate
-description: Translate Zotero PDF attachments on Windows, macOS, or Linux with a current-chat workflow that uses pdf2zh/BabelDOC for PDF segmentation, formula/layout preservation, and rendering while the active assistant conversation translates collected segments. Use when Codex needs to translate a selected Zotero PDF, generate mono and/or dual PDFs, and attach the final PDF outputs back to the same Zotero parent item without translation credentials.
+description: Translate Zotero PDF attachments on Windows, macOS, or Linux with a current-chat workflow that uses pdf2zh/BabelDOC for PDF segmentation, formula/layout preservation, and rendering while the active assistant conversation translates collected segments. Use when an agent needs to translate a selected Zotero PDF, generate mono and/or dual PDFs, and attach the final PDF outputs back to the same Zotero parent item without translation credentials or Zotero translation plugin setup.
 ---
 
 # Zotero Translate
 
-Use this skill to translate a Zotero PDF attachment through a single current-chat route. The cross-platform Python scripts use `pdf2zh-next` for segmentation and PDF rendering, and the active assistant conversation translates the collected text segments.
+Use this skill to translate a Zotero PDF attachment through a single current-chat route. The cross-platform Python scripts use `pdf2zh-next` for segmentation and PDF rendering, and the active assistant conversation translates the collected text segments. The workflow is agent-agnostic: any agent that can load local skills, run scripts, and access Zotero Desktop through a connector can use it.
 
 ## Defaults
 
@@ -15,6 +15,7 @@ Use this skill to translate a Zotero PDF attachment through a single current-cha
 - Attach all final PDF outputs to the same Zotero parent item.
 - Keep the skill-local runtime and BabelDOC asset cache by default.
 - Prefer `python scripts/run_pdf2zh.py` on all platforms. Use `.ps1` wrappers only when the user explicitly wants PowerShell commands.
+- Do not require a Zotero translation plugin or a preconfigured pdf2zh/BabelDOC environment; the skill bootstraps its local runtime on first use.
 
 ## Prompt Mapping
 
