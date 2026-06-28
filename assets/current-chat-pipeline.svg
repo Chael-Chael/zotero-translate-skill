@@ -1,0 +1,38 @@
+<svg width="1120" height="360" viewBox="0 0 1120 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1120" height="360" rx="26" fill="#F8FAFC"/>
+  <rect x="30" y="30" width="1060" height="300" rx="22" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <g font-family="Inter, Arial, sans-serif">
+    <text x="58" y="76" font-size="26" font-weight="800" fill="#0F172A">Current-chat translation pipeline</text>
+    <text x="58" y="105" font-size="15" fill="#475569">pdf2zh handles PDF layout; the active conversation handles translation.</text>
+  </g>
+  <g>
+    <rect x="70" y="152" width="170" height="104" rx="16" fill="#EFF6FF" stroke="#93C5FD" stroke-width="2"/>
+    <text x="99" y="190" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#1D4ED8">Zotero PDF</text>
+    <text x="99" y="220" font-family="Inter, Arial, sans-serif" font-size="13" fill="#1E40AF">original attachment</text>
+  </g>
+  <path d="M260 204H330" stroke="#64748B" stroke-width="5" stroke-linecap="round"/>
+  <path d="M314 186L334 204L314 222" stroke="#64748B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g>
+    <rect x="352" y="136" width="190" height="136" rx="16" fill="#F0FDF4" stroke="#86EFAC" stroke-width="2"/>
+    <text x="395" y="176" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#15803D">Collect</text>
+    <text x="382" y="207" font-family="Inter, Arial, sans-serif" font-size="13" fill="#166534">segments.jsonl</text>
+    <text x="382" y="230" font-family="Inter, Arial, sans-serif" font-size="13" fill="#166534">context_pack.md</text>
+  </g>
+  <path d="M562 204H632" stroke="#64748B" stroke-width="5" stroke-linecap="round"/>
+  <path d="M616 186L636 204L616 222" stroke="#64748B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g>
+    <rect x="654" y="128" width="210" height="152" rx="16" fill="#111827"/>
+    <text x="700" y="170" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#E0F2FE">Current chat</text>
+    <rect x="690" y="194" width="138" height="16" rx="8" fill="#38BDF8"/>
+    <rect x="690" y="224" width="104" height="16" rx="8" fill="#22C55E"/>
+    <text x="690" y="256" font-family="Inter, Arial, sans-serif" font-size="13" fill="#CBD5E1">translations.jsonl</text>
+  </g>
+  <path d="M884 204H954" stroke="#64748B" stroke-width="5" stroke-linecap="round"/>
+  <path d="M938 186L958 204L938 222" stroke="#64748B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g>
+    <rect x="976" y="136" width="86" height="136" rx="16" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+    <text x="997" y="177" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800" fill="#B45309">PDFs</text>
+    <text x="997" y="207" font-family="Inter, Arial, sans-serif" font-size="13" fill="#92400E">mono</text>
+    <text x="997" y="230" font-family="Inter, Arial, sans-serif" font-size="13" fill="#92400E">dual</text>
+  </g>
+</svg>

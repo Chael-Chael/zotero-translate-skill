@@ -1,54 +1,77 @@
-<p align="center">
+<div align="center">
   <img src="./assets/zotero-translate-banner.svg" alt="Zotero Translate Skill banner" width="100%">
-</p>
+</div>
 
-<p align="center">
-  <a href="./LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
-  <img alt="Python 3" src="https://img.shields.io/badge/python-3.10%2B-3776AB">
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2ea44f">
-  <img alt="No API key" src="https://img.shields.io/badge/translation-current--chat-orange">
-</p>
+<div align="center">
+
+English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-TW.md) | [日本語](docs/README_ja-JP.md) | [한국어](docs/README_ko-KR.md)
+
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](./LICENSE)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2ea44f)
+![Translation](https://img.shields.io/badge/translation-current--chat-orange)
+![Zotero](https://img.shields.io/badge/Zotero-PDF%20attachments-BD1F2D)
 
 # Zotero Translate Skill
 
-Translate Zotero PDF attachments into Chinese while preserving the original PDF layout. This skill combines the segmentation and rendering strengths of `pdf2zh` / BabelDOC with a **current-chat translation loop**: the active agent conversation translates the extracted text segments, then the skill renders mono and dual PDFs and attaches them back to Zotero.
+**Translate Zotero PDF attachments into Chinese while preserving the original PDF layout.**
 
-It is designed for academic papers, technical reports, and long PDF workflows where layout, formulas, citations, and rich-text placeholders need to survive translation.
+This repository packages a reusable agent skill that combines the layout-preserving PDF workflow of `pdf2zh` / BabelDOC with a **current-chat translation loop**. The active conversation translates the collected segments, while the scripts handle PDF segmentation, rendering, Zotero attachment guidance, and cleanup.
 
-> This project is a Codex skill repository. The installable skill lives in [`skills/zotero-translate`](./skills/zotero-translate).
+[Install](#31-installation) · [Quick Start](#32-quick-start) · [CLI Usage](#35-direct-cli-usage) · [Technical Details](#4-technical-details) · [Troubleshooting](#47-troubleshooting)
 
-## Highlights
+</div>
 
-- **Current-chat translation only** - no provider key, no external translation service, no background LLM process.
-- **Layout-preserving PDF rendering** - delegates segmentation, formula/layout preservation, and PDF generation to `pdf2zh-next` / BabelDOC.
-- **Zotero-first workflow** - collect from a Zotero PDF attachment, render final PDFs, and attach the outputs under the original Zotero parent item.
-- **Cross-platform scripts** - Python entrypoints work on Windows, macOS, and Linux; PowerShell wrappers remain for Windows users.
-- **Mono, dual, or both** - defaults to both Chinese-only and bilingual PDFs.
-- **Privacy-aware context packs** - generated context avoids local paths and personal storage details by default.
-- **Manifest-based cleanup** - temporary run directories are removed only after attachment is confirmed.
+---
 
-## How It Works
+## 1. What Is This?
 
-```mermaid
-flowchart LR
-    A["Zotero PDF attachment"] --> B["Collect phase<br/>pdf2zh + collect_segments.py"]
-    B --> C["segments.jsonl"]
-    B --> D["context_pack.md"]
-    C --> E["Active agent conversation<br/>translates each segment"]
-    D --> E
-    E --> F["translations.jsonl"]
-    F --> G["Render phase<br/>pdf2zh + lookup_translator.py"]
-    G --> H["Mono PDF"]
-    G --> I["Dual PDF"]
-    H --> J["Attach to original Zotero item"]
-    I --> J
-```
+Zotero Translate Skill is for academic reading workflows where the PDF layout matters. It collects real text segments from a Zotero PDF attachment, asks the active agent conversation to translate those segments, then renders final PDFs and attaches them back to the same Zotero parent item.
 
-The collection pass uses a CLI translator that returns the original source text while recording every actual segment in `segments.jsonl`. The active conversation then writes `translations.jsonl`. The render pass uses a lookup translator that maps each source segment hash to its translated text.
+Unlike ordinary one-shot PDF translation prompts, this skill keeps a deterministic run manifest and uses `pdf2zh-next` / BabelDOC for the fragile parts: segmentation, placeholder preservation, formula/layout handling, and final PDF generation.
 
-## Installation
+<p align="center">
+  <img src="./assets/current-chat-pipeline.svg" alt="Current-chat PDF translation pipeline" width="92%">
+</p>
 
-### Option 1: Install with the Skills CLI
+### 1.1 Features
+
+| Feature | Description |
+| --- | --- |
+| Current-chat translation | The active agent conversation writes `translations.jsonl`; no provider-specific translation credentials are required. |
+| Layout-preserving rendering | PDF segmentation and rendering are delegated to `pdf2zh-next` / BabelDOC. |
+| Zotero-native output | Final PDFs are attached to the original Zotero parent item. |
+| Full PDF by default | Unless the prompt specifies pages, the skill translates the whole PDF. |
+| Mono + dual by default | Produces translated-only and bilingual PDFs unless the user asks for one mode. |
+| Cross-platform scripts | Python entrypoints support Windows, macOS, and Linux; PowerShell wrappers remain for Windows users. |
+| Privacy-aware context | Context packs avoid local paths and personal storage details by default. |
+| Manifest-based cleanup | Temporary files are cleaned only after Zotero attachment is confirmed. |
+
+### 1.2 Output Preview
+
+<p align="center">
+  <img src="./assets/output-modes.svg" alt="Mono and dual output modes" width="86%">
+</p>
+
+The repository currently includes generated SVG diagrams. For a stronger GitHub landing page, add real screenshots from your own workflow:
+
+- `assets/preview-zotero-attachments.png`: Zotero parent item showing the original PDF plus generated mono and dual PDFs.
+- `assets/preview-mono-dual-pages.png`: side-by-side page preview of mono and dual outputs from the same paper.
+- `assets/preview-current-chat-run.png`: the agent conversation after collect, translation, render, and attach.
+
+## 2. Recent Updates
+
+- **Cross-platform workflow**: `run_pdf2zh.py` is now the main entrypoint for Windows, macOS, and Linux.
+- **Current-chat only route**: removed background translator processes and provider-specific translation routes.
+- **Multilingual documentation**: English, Simplified Chinese, Traditional Chinese, Japanese, and Korean README files are available.
+- **Safer artifacts**: each run uses a unique temp directory and manifest-based cleanup.
+- **UTF-8 stable helpers**: CLI translator helpers force UTF-8 stdin/stdout/stderr for multilingual text and non-ASCII PDF names.
+
+## 3. Use
+
+### 3.1 Installation
+
+#### Option A: Skills CLI
 
 If your agent environment supports the Skills CLI, install directly from GitHub:
 
@@ -56,11 +79,9 @@ If your agent environment supports the Skills CLI, install directly from GitHub:
 npx skills add https://github.com/Chael-Chael/zotero-translate-skill
 ```
 
-After installation, restart your agent client so it reloads available skills.
+Restart your agent client after installation so it reloads available skills.
 
-### Option 2: Manual install for Codex
-
-Clone the repository and copy the skill folder into your Codex skill directory.
+#### Option B: Manual Install for Codex
 
 macOS / Linux:
 
@@ -80,58 +101,60 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 Restart Codex after copying the skill.
 
-### Option 3: Manual install for other agents
+#### Option C: Other Agents
 
-Copy [`skills/zotero-translate`](./skills/zotero-translate) into the skill directory used by your agent, or point the agent at its `SKILL.md` file. The deterministic workflow scripts are Python-based and portable, but Zotero attachment requires your agent to have a Zotero Desktop connector or equivalent local Zotero automation tool.
+Copy [`skills/zotero-translate`](./skills/zotero-translate) into the skill directory used by your agent, or point the agent at `skills/zotero-translate/SKILL.md`.
 
-## Requirements
+The deterministic workflow is Python-based and portable, but Zotero attachment requires your agent to have a Zotero Desktop connector or equivalent local Zotero automation tool.
+
+### 3.2 Quick Start
+
+Open Zotero, select a paper item with a PDF attachment, then ask your agent:
+
+```text
+Use $zotero-translate to translate the selected Zotero PDF.
+```
+
+Default behavior:
+
+1. Collect the full PDF.
+2. Translate segments in the active conversation.
+3. Render both mono and dual PDFs.
+4. Attach both PDFs to the original Zotero parent item.
+5. Verify attachments.
+6. Clean the temporary run directory.
+
+### 3.3 Prompt Examples
+
+| Prompt | Result |
+| --- | --- |
+| `Use $zotero-translate to translate the selected Zotero PDF.` | Full PDF, mono + dual output. |
+| `Translate only pages 1-3, mono only.` | Passes `--pages "1-3"` and `--output-mode mono`. |
+| `Make a bilingual PDF only.` | Uses `--output-mode dual`. |
+| `Translate this paper but keep artifacts for debugging.` | Skips cleanup so the run directory remains available. |
+
+### 3.4 Requirements
 
 | Requirement | Why it is needed |
 | --- | --- |
 | Python 3.10+ | Creates the skill-local virtual environment and runs helper scripts. |
 | Zotero Desktop | Source PDFs and final attachments live in Zotero. |
-| Zotero-capable agent connector | Needed to read the selected item and attach final PDFs. |
-| Internet on first runtime setup | Installs `pdf2zh-next` and `PyMuPDF` into the skill-local venv. |
-| Current chat with enough context budget | The active conversation translates `segments.jsonl`. |
+| Zotero-capable agent connector | Reads selected items and attaches final PDFs. |
+| Internet on first runtime setup | Installs `pdf2zh-next`, `PyMuPDF`, and BabelDOC assets. |
+| Enough current-chat context | The active conversation translates `segments.jsonl`. |
 
-The first runtime setup creates:
+First runtime setup creates:
 
 ```text
 skills/zotero-translate/.runtime/venv
 ~/.cache/babeldoc
 ```
 
-These are intentionally excluded from version control.
+These paths are intentionally excluded from version control.
 
-## Quick Start
+### 3.5 Direct CLI Usage
 
-Ask your agent:
-
-```text
-Use $zotero-translate to translate the selected Zotero PDF.
-```
-
-By default, the skill:
-
-1. Translates the full PDF.
-2. Produces both mono and dual PDFs.
-3. Uses no watermark.
-4. Attaches all final PDFs to the same Zotero parent item.
-5. Cleans intermediate run artifacts after Zotero attachment is verified.
-
-## Prompt Controls
-
-| User request | Skill behavior |
-| --- | --- |
-| "translate this Zotero PDF" | Full PDF, mono + dual output. |
-| "pages 1-3 only" | Passes `--pages "1-3"` to pdf2zh. |
-| "mono only" / "Chinese-only" | Uses `--output-mode mono`. |
-| "dual only" / "bilingual" | Uses `--output-mode dual`. |
-| "keep artifacts" | Skips cleanup for debugging. |
-
-## Direct CLI Usage
-
-You normally invoke the skill through an agent, but the deterministic phases can also be run directly.
+You normally run this through an agent, but the deterministic phases can be executed directly.
 
 Collect segments:
 
@@ -140,7 +163,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
   --input-pdf "/path/to/paper.pdf"
 ```
 
-Collect only selected pages and request mono output:
+Collect selected pages and request mono output:
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
@@ -165,9 +188,21 @@ python skills/zotero-translate/scripts/cleanup_artifacts.py \
   --confirm-attached
 ```
 
-PowerShell wrappers with equivalent parameters are also available under [`scripts/`](./skills/zotero-translate/scripts).
+PowerShell wrappers with equivalent parameters are available under [`skills/zotero-translate/scripts`](./skills/zotero-translate/scripts).
 
-## Generated Artifacts
+## 4. Technical Details
+
+### 4.1 Current-Chat Translation Route
+
+The workflow has one route:
+
+```text
+collect -> translate in current chat -> render -> attach -> cleanup
+```
+
+The collect phase uses `collect_segments.py` as a `pdf2zh` CLI translator. It records actual source segments into `segments.jsonl` and returns the original text to keep the collection pass moving. The active conversation reads the context pack and writes one translated JSON object per line to `translations.jsonl`. The render phase uses `lookup_translator.py` to map stable source hashes to translations.
+
+### 4.2 Run Directory
 
 Each run creates a managed directory under the platform temp folder:
 
@@ -183,31 +218,60 @@ zotero-translate-runs/<pdf-stem>-<hash>-<timestamp>/
 └── tmp/
 ```
 
-Temporary run directories can be deleted after successful Zotero attachment. Do not delete the skill-local `.runtime/venv` or the BabelDOC cache unless you want the next run to reinstall assets.
+The run directory can contain source and translated text. Clean it after successful Zotero attachment unless debugging is needed.
 
-## Output Modes
+### 4.3 Output Modes
 
-```mermaid
-flowchart TB
-    A["--output-mode both<br/>(default)"] --> B["mono translated PDF"]
-    A --> C["dual bilingual PDF"]
-    D["--output-mode mono"] --> B
-    E["--output-mode dual"] --> C
-```
+| Output mode | pdf2zh flags | Result |
+| --- | --- | --- |
+| `both` | default | Mono translated PDF + dual bilingual PDF. |
+| `mono` | `--no-dual` | Translated-only PDF. |
+| `dual` | `--no-mono` | Bilingual PDF. |
 
-The default is intentionally generous for Zotero workflows: attach both outputs once, then keep whichever one is more useful for reading.
+### 4.4 Runtime Selection
 
-## Privacy Model
+`run_pdf2zh.py` creates `<skill-dir>/.runtime/venv` when needed.
 
-The skill does not send a paper to a separate translation API. Translation happens in the active agent conversation that is already handling your request. The context pack redacts common local path fields by default and keeps only bounded paper context such as metadata and early-page text.
+Selection order:
+
+1. `--python-exe`, if provided.
+2. The Python interpreter that launched `run_pdf2zh.py`.
+3. For PowerShell wrappers: `python3`, `python`, `py -3`, then an available bundled runtime as a fallback.
+
+### 4.5 Privacy Model
+
+The skill does not send documents to a separate translation service. Translation happens in the active conversation that is already handling the user request.
 
 Important boundaries:
 
-- Zotero item metadata and extracted PDF segments are visible to the active conversation.
-- The skill does not require provider-specific translation credentials.
-- Local run directories may contain source and translated text until cleanup is complete.
+- Zotero metadata and extracted PDF segments are visible to the active conversation.
+- Context packs redact common local path fields by default.
+- Temporary run directories may contain source and translated text until cleanup.
 
-## Troubleshooting
+### 4.6 Repository Layout
+
+```text
+.
+├── README.md
+├── docs/
+│   ├── README_zh-CN.md
+│   ├── README_zh-TW.md
+│   ├── README_ja-JP.md
+│   └── README_ko-KR.md
+├── LICENSE
+├── assets/
+│   ├── zotero-translate-banner.svg
+│   ├── current-chat-pipeline.svg
+│   └── output-modes.svg
+└── skills/
+    └── zotero-translate/
+        ├── SKILL.md
+        ├── agents/
+        ├── references/
+        └── scripts/
+```
+
+### 4.7 Troubleshooting
 
 | Symptom | What to check |
 | --- | --- |
@@ -217,28 +281,14 @@ Important boundaries:
 | Zotero attachment fails | Confirm Zotero Desktop is open and your agent has a working Zotero connector. |
 | Disk usage grows | Clean completed run directories; keep `.runtime/venv` and `~/.cache/babeldoc` for faster future runs. |
 
-## Repository Layout
+## 5. Project Information
 
-```text
-.
-├── README.md
-├── LICENSE
-├── assets/
-│   └── zotero-translate-banner.svg
-└── skills/
-    └── zotero-translate/
-        ├── SKILL.md
-        ├── agents/
-        ├── references/
-        └── scripts/
-```
+### 5.1 Acknowledgements
 
-## Acknowledgements
-
-This skill is inspired by the PDF layout-preserving workflow of [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README structure takes cues from public skills repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
+This skill is inspired by the layout-preserving PDF workflow of [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README organization also follows the style of public skill repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
 
 This repository is not affiliated with Zotero, PDFMathTranslate, BabelDOC, Greensock, or Obsidian.
 
-## License
+### 5.2 License
 
 AGPL-3.0. See [`LICENSE`](./LICENSE).

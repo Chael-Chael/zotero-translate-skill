@@ -1,0 +1,26 @@
+<svg width="980" height="300" viewBox="0 0 980 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="980" height="300" rx="24" fill="#0F172A"/>
+  <g font-family="Inter, Arial, sans-serif">
+    <text x="42" y="58" font-size="26" font-weight="800" fill="#F8FAFC">Output modes</text>
+    <text x="42" y="86" font-size="15" fill="#CBD5E1">Choose one output, or keep the default and attach both to Zotero.</text>
+  </g>
+  <rect x="54" y="126" width="250" height="122" rx="18" fill="#F8FAFC"/>
+  <rect x="78" y="150" width="70" height="74" rx="10" fill="#DBEAFE"/>
+  <rect x="166" y="154" width="102" height="14" rx="7" fill="#2563EB"/>
+  <rect x="166" y="184" width="82" height="12" rx="6" fill="#CBD5E1"/>
+  <rect x="166" y="210" width="58" height="12" rx="6" fill="#CBD5E1"/>
+  <text x="78" y="272" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800" fill="#E0F2FE">mono</text>
+  <text x="132" y="272" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94A3B8">translated-only PDF</text>
+  <rect x="366" y="126" width="250" height="122" rx="18" fill="#F8FAFC"/>
+  <rect x="390" y="150" width="70" height="74" rx="10" fill="#DCFCE7"/>
+  <rect x="478" y="150" width="70" height="74" rx="10" fill="#FEF3C7"/>
+  <rect x="390" y="238" width="158" height="12" rx="6" fill="#CBD5E1"/>
+  <text x="390" y="272" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800" fill="#E0F2FE">dual</text>
+  <text x="438" y="272" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94A3B8">bilingual PDF</text>
+  <rect x="678" y="126" width="250" height="122" rx="18" fill="#F8FAFC"/>
+  <rect x="704" y="150" width="54" height="74" rx="10" fill="#DBEAFE"/>
+  <rect x="770" y="150" width="54" height="74" rx="10" fill="#DCFCE7"/>
+  <rect x="836" y="150" width="54" height="74" rx="10" fill="#FEF3C7"/>
+  <text x="704" y="272" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800" fill="#E0F2FE">both</text>
+  <text x="755" y="272" font-family="Inter, Arial, sans-serif" font-size="14" fill="#94A3B8">default for Zotero</text>
+</svg>
