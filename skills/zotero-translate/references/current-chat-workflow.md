@@ -26,7 +26,7 @@ The collect phase writes these files in the run directory:
 Each `segments.jsonl` line has this shape:
 
 ```json
-{"id":"<sha256>","source":"<text>","normalizedSource":"<normalized text>","sourceLanguage":"en","targetLanguage":"zh","status":"pending"}
+{"id":"<sha256>","source":"<text>","normalizedSource":"<normalized text>","sourceLanguage":"en","targetLanguage":"<target-language>","status":"pending"}
 ```
 
 Each `translations.jsonl` line must have this shape:

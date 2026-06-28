@@ -1,4 +1,4 @@
 interface:
   display_name: "Zotero Translate"
   short_description: "Translate Zotero PDFs in current chat"
-  default_prompt: "Use $zotero-translate to collect the selected Zotero PDF segments with the cross-platform Python workflow, translate them in the active conversation, render mono and dual PDFs, and attach the outputs back to Zotero."
+  default_prompt: "Use $zotero-translate to translate the selected Zotero PDF after confirming the target language, then render mono and dual PDFs and attach the outputs back to Zotero."

@@ -4,6 +4,8 @@
 
 <div align="center">
 
+# Zotero Translate Skill
+
 English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-TW.md) | [日本語](docs/README_ja-JP.md) | [한국어](docs/README_ko-KR.md)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](./LICENSE)
@@ -12,8 +14,6 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 ![Translation](https://img.shields.io/badge/translation-current--chat-orange)
 ![Setup](https://img.shields.io/badge/setup-install%20skill%20only-7C3AED)
 ![Zotero](https://img.shields.io/badge/Zotero-PDF%20attachments-BD1F2D)
-
-# Zotero Translate Skill
 
 <p>
   <strong>Install a skill. Translate the paper. Keep the layout.</strong>

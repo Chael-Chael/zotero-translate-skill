@@ -136,9 +136,10 @@ Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 
 | 使用者請求 | skill 行為 |
 | --- | --- |
-| "translate this Zotero PDF" | 全文翻譯，輸出 mono + dual。 |
+| "translate this Zotero PDF into Spanish" | 全文翻譯，輸出 mono + dual。 |
+| "translate this Zotero PDF" | 先詢問目標語言，再執行。 |
 | "pages 1-3 only" | 傳遞 `--pages "1-3"`。 |
-| "mono only" / "Chinese-only" | 使用 `--output-mode mono`。 |
+| "mono only" / "target-language-only" | 使用 `--output-mode mono`。 |
 | "dual only" / "bilingual" | 使用 `--output-mode dual`。 |
 | "keep artifacts" | 保留臨時產物用於除錯。 |
 
@@ -150,7 +151,8 @@ Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
-  --input-pdf "/path/to/paper.pdf"
+  --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja"
 ```
 
 只收集部分頁面並指定 mono：
@@ -158,6 +160,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja" \
   --pages "1-3" \
   --output-mode mono
 ```
@@ -202,7 +205,7 @@ zotero-translate-runs/<pdf-stem>-<hash>-<timestamp>/
 
 ```mermaid
 flowchart TB
-    A["--output-mode both<br/>(預設)"] --> B["mono 中文 PDF"]
+    A["--output-mode both<br/>(預設)"] --> B["mono 目標語言 PDF"]
     A --> C["dual 雙語 PDF"]
     D["--output-mode mono"] --> B
     E["--output-mode dual"] --> C

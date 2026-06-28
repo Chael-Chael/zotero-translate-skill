@@ -4,10 +4,11 @@ param(
   [string]$OutputPath,
   [string]$ZoteroJson,
   [string]$SourceLanguage = "en",
-  [string]$TargetLanguage = "zh",
+  [Parameter(Mandatory = $true)]
+  [string]$TargetLanguage,
   [int]$MaxPages = 4,
   [int]$MaxCharsPerPage = 5000,
-  [string]$UserPreferences = "Use concise, academically precise Simplified Chinese. Preserve established English acronyms and method names when commonly used.",
+  [string]$UserPreferences = "Use concise, academically precise wording. Preserve established English acronyms and method names when commonly used.",
   [string]$PythonExe,
   [switch]$IncludeLocalPaths,
   [switch]$Force

@@ -65,8 +65,10 @@ def main() -> int:
     parser.add_argument("--segments-path", "-SegmentsPath", required=True)
     parser.add_argument("--manifest-path", "-ManifestPath")
     parser.add_argument("--source-language", "-SourceLanguage", default="en")
-    parser.add_argument("--target-language", "-TargetLanguage", default="zh")
+    parser.add_argument("--target-language", "-TargetLanguage", required=True)
     args = parser.parse_args()
+    if not args.target_language.strip():
+        raise ValueError("TargetLanguage must not be empty.")
 
     source = sys.stdin.read()
     normalized = normalize(source)

@@ -5,7 +5,7 @@ param(
   [string]$RunDir,
   [string]$Pages,
   [string]$LangIn = "en",
-  [string]$LangOut = "zh",
+  [string]$LangOut,
   [ValidateSet("mono", "dual", "both")]
   [string]$OutputMode = "both",
   [ValidateSet("no_watermark", "watermarked", "both")]

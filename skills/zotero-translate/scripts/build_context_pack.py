@@ -63,15 +63,17 @@ def main() -> int:
     parser.add_argument("--output-path", "-OutputPath")
     parser.add_argument("--zotero-json", "-ZoteroJson")
     parser.add_argument("--source-language", "-SourceLanguage", default="en")
-    parser.add_argument("--target-language", "-TargetLanguage", default="zh")
+    parser.add_argument("--target-language", "-TargetLanguage", required=True)
     parser.add_argument("--max-pages", "-MaxPages", type=int, default=4)
     parser.add_argument("--max-chars-per-page", "-MaxCharsPerPage", type=int, default=5000)
-    parser.add_argument("--user-preferences", "-UserPreferences", default="Use concise, academically precise Simplified Chinese. Preserve established English acronyms and method names when commonly used.")
+    parser.add_argument("--user-preferences", "-UserPreferences", default="Use concise, academically precise wording. Preserve established English acronyms and method names when commonly used.")
     parser.add_argument("--include-local-paths", "-IncludeLocalPaths", action="store_true")
     parser.add_argument("--force", "-Force", action="store_true")
     args = parser.parse_args()
 
     input_pdf = Path(args.input_pdf).expanduser().resolve()
+    if not args.target_language.strip():
+        raise ValueError("TargetLanguage must not be empty. Ask the user which language to translate into.")
     if not input_pdf.exists():
         raise FileNotFoundError(f"InputPdf does not exist: {input_pdf}")
     if input_pdf.suffix.lower() != ".pdf":

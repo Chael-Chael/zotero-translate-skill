@@ -12,6 +12,7 @@ Use this skill to translate a Zotero PDF attachment through a single current-cha
 - Translate the full PDF unless the user specifies pages.
 - Generate both mono and dual PDFs unless the user asks for only one output type.
 - Use `-WatermarkOutputMode no_watermark`.
+- Do not assume a default target language. If the user has not specified the target language, ask which language to translate into before starting a new translation run.
 - Attach all final PDF outputs to the same Zotero parent item.
 - Keep the skill-local runtime and BabelDOC asset cache by default.
 - Prefer `python scripts/run_pdf2zh.py` on all platforms. Use `.ps1` wrappers only when the user explicitly wants PowerShell commands.
@@ -19,7 +20,9 @@ Use this skill to translate a Zotero PDF attachment through a single current-cha
 
 ## Prompt Mapping
 
-- If the user asks for translated-only, Chinese-only, or mono output, use `-OutputMode mono`.
+- If the user gives a target language, pass it with `-LangOut <target-language>` / `--lang-out <target-language>`.
+- If the user asks to translate but does not give a target language, ask for the target language instead of defaulting to Chinese or any other language.
+- If the user asks for translated-only, target-language-only, or mono output, use `-OutputMode mono`.
 - If the user asks for bilingual, side-by-side, or dual output, use `-OutputMode dual`.
 - If the user asks for both, or gives no output preference, use `-OutputMode both`.
 - If the user specifies pages, pass the exact page range to `-Pages`; otherwise omit `-Pages` for a full PDF run.
@@ -41,7 +44,8 @@ Default full-PDF collect phase:
 
 ```bash
 python "<path-to-installed-zotero-translate-skill>/scripts/run_pdf2zh.py" \
-  --input-pdf "<path-to-zotero-pdf>"
+  --input-pdf "<path-to-zotero-pdf>" \
+  --lang-out "<target-language>"
 ```
 
 Collect only pages 1-3 and generate mono output during render:
@@ -49,6 +53,7 @@ Collect only pages 1-3 and generate mono output during render:
 ```bash
 python "<path-to-installed-zotero-translate-skill>/scripts/run_pdf2zh.py" \
   --input-pdf "<path-to-zotero-pdf>" \
+  --lang-out "<target-language>" \
   --pages "1-3" \
   --output-mode mono
 ```
@@ -85,6 +90,6 @@ python "<path-to-installed-zotero-translate-skill>/scripts/cleanup_artifacts.py"
 ## Validation
 
 - Run `python scripts/ensure_runtime.py` to create or verify the skill-local runtime.
-- Run `python scripts/run_pdf2zh.py --input-pdf <pdf> --pages "1" --dry-run` to inspect collect command assembly.
+- Run `python scripts/run_pdf2zh.py --input-pdf <pdf> --lang-out <target-language> --pages "1" --dry-run` to inspect collect command assembly.
 - Test collector and lookup helpers with a short segment before a full PDF run.
 - After attaching PDFs, re-read the Zotero parent item and confirm the new attachments.

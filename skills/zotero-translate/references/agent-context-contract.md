@@ -19,7 +19,7 @@ Use this reference when creating or editing `context_pack.md` for the Zotero Tra
 
 2. Translation instructions
    - Use an academic/scientific tone.
-   - Translate into Simplified Chinese by default.
+   - Translate into the explicit `target_language`. Do not create a context pack until the user has specified the target language.
    - Preserve math, citations, URLs, code, rich-text placeholders, and XML-like tags exactly.
    - Return only translated text in each JSONL `target` value.
 

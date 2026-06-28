@@ -133,7 +133,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-dir", "-RunDir")
     parser.add_argument("--pages", "-Pages")
     parser.add_argument("--lang-in", "-LangIn", default="en")
-    parser.add_argument("--lang-out", "-LangOut", default="zh")
+    parser.add_argument("--lang-out", "-LangOut")
     parser.add_argument("--output-mode", "-OutputMode", choices=("mono", "dual", "both"), default="both")
     parser.add_argument("--watermark-output-mode", "-WatermarkOutputMode", choices=("no_watermark", "watermarked", "both"), default="no_watermark")
     parser.add_argument("--no-auto-glossary", "-NoAutoGlossary", action="store_true")
@@ -147,6 +147,8 @@ def make_parser() -> argparse.ArgumentParser:
 
 
 def collect_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> int:
+    if not args.lang_out or not args.lang_out.strip():
+        raise ValueError("LangOut is required for the collect phase. Ask the user for the target language and pass --lang-out <target-language>.")
     if not args.input_pdf:
         raise ValueError("InputPdf is required for the collect phase.")
     input_pdf = Path(args.input_pdf).expanduser().resolve()
@@ -367,6 +369,8 @@ def render_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> i
 def main() -> int:
     parser = make_parser()
     args = parser.parse_args()
+    if args.phase == "collect" and (not args.lang_out or not args.lang_out.strip()):
+        parser.error("--lang-out/-LangOut is required for the collect phase. Ask the user for the target language instead of using a default.")
     script_dir = Path(__file__).resolve().parent
     runtime = get_runtime(script_dir, args.python_exe, args.force_runtime, args.dry_run)
     if args.phase == "collect":

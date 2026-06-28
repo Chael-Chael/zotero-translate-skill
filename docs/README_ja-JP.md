@@ -9,7 +9,7 @@
   <img alt="No provider key" src="https://img.shields.io/badge/translation-current--chat-orange">
 </p>
 
-[English](../README.md) | [简体中文](README_zh-CN.md) | [繁體中文](README_zh-TW.md) | 日本語 | [한국어](README_ko-KR.md)
+[English](../README.md) | [简体中文](README_zh-CN.md) | [繁體中文](README_zh-TR.md) | 日本語 | [한국어](README_ko-KR.md)
 
 # Zotero Translate Skill
 
@@ -136,9 +136,10 @@ prompt に target language が含まれていない場合、agent は collect ph
 
 | User request | Skill behavior |
 | --- | --- |
-| "translate this Zotero PDF" | Full PDF、mono + dual output。 |
+| "translate this Zotero PDF into Spanish" | Full PDF、mono + dual output。 |
+| "translate this Zotero PDF" | target language を確認してから実行します。 |
 | "pages 1-3 only" | `--pages "1-3"` を渡します。 |
-| "mono only" / "Chinese-only" | `--output-mode mono` を使います。 |
+| "mono only" / "target-language-only" | `--output-mode mono` を使います。 |
 | "dual only" / "bilingual" | `--output-mode dual` を使います。 |
 | "keep artifacts" | debugging 用に temporary artifacts を保持します。 |
 
@@ -150,7 +151,8 @@ Collect segments:
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
-  --input-pdf "/path/to/paper.pdf"
+  --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja"
 ```
 
 指定ページのみを collect し、mono output を指定する場合：
@@ -158,6 +160,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja" \
   --pages "1-3" \
   --output-mode mono
 ```

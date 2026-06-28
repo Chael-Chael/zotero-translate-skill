@@ -9,7 +9,7 @@
   <img alt="No provider key" src="https://img.shields.io/badge/translation-current--chat-orange">
 </p>
 
-[English](../README.md) | 简体中文 | [繁體中文](README_zh-TW.md) | [日本語](README_ja-JP.md) | [한국어](README_ko-KR.md)
+[English](../README.md) | 简体中文 | [繁體中文](README_zh-TR.md) | [日本語](README_ja-JP.md) | [한국어](README_ko-KR.md)
 
 # Zotero Translate Skill
 
@@ -136,9 +136,10 @@ Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 
 | 用户请求 | skill 行为 |
 | --- | --- |
-| "translate this Zotero PDF" | 全文翻译，输出 mono + dual。 |
+| "translate this Zotero PDF into Spanish" | 全文翻译，输出 mono + dual。 |
+| "translate this Zotero PDF" | 先询问目标语言，再运行。 |
 | "pages 1-3 only" | 传递 `--pages "1-3"`。 |
-| "mono only" / "Chinese-only" | 使用 `--output-mode mono`。 |
+| "mono only" / "target-language-only" | 使用 `--output-mode mono`。 |
 | "dual only" / "bilingual" | 使用 `--output-mode dual`。 |
 | "keep artifacts" | 保留临时产物用于调试。 |
 
@@ -150,7 +151,8 @@ Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
-  --input-pdf "/path/to/paper.pdf"
+  --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja"
 ```
 
 只收集部分页面并指定 mono：
@@ -158,6 +160,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja" \
   --pages "1-3" \
   --output-mode mono
 ```
@@ -202,7 +205,7 @@ zotero-translate-runs/<pdf-stem>-<hash>-<timestamp>/
 
 ```mermaid
 flowchart TB
-    A["--output-mode both<br/>(默认)"] --> B["mono 中文 PDF"]
+    A["--output-mode both<br/>(默认)"] --> B["mono 目标语言 PDF"]
     A --> C["dual 双语 PDF"]
     D["--output-mode mono"] --> B
     E["--output-mode dual"] --> C

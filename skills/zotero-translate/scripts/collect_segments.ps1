@@ -3,7 +3,8 @@ param(
   [string]$SegmentsPath,
   [string]$ManifestPath,
   [string]$SourceLanguage = "en",
-  [string]$TargetLanguage = "zh",
+  [Parameter(Mandatory = $true)]
+  [string]$TargetLanguage,
   [string]$PythonExe
 )
 
