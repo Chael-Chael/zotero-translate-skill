@@ -6,13 +6,11 @@
 
 # Zotero Translate Skill
 
-English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-TW.md) | [日本語](docs/README_ja-JP.md) | [한국어](docs/README_ko-KR.md)
+English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-TR.md) | [日本語](docs/README_ja-JP.md) | [한국어](docs/README_ko-KR.md)
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](./LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2ea44f)
-![Translation](https://img.shields.io/badge/translation-current--chat-orange)
-![Setup](https://img.shields.io/badge/setup-install%20skill%20only-7C3AED)
 ![Zotero](https://img.shields.io/badge/Zotero-PDF%20attachments-BD1F2D)
 
 <p>
@@ -30,20 +28,21 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 
 ## 1. What Is This?
 
-Zotero Translate Skill is for academic reading workflows where the PDF layout matters. It collects real text segments from a Zotero PDF attachment, asks the active agent conversation to translate those segments, then renders final PDFs and attaches them back to the same Zotero parent item.
+Zotero Translate Skill is for academic reading workflows where the PDF layout matters. It collects real text segments from a Zotero PDF attachment, translates them through a configured OpenAI-compatible API when available, then renders final PDFs and attaches them back to the same Zotero parent item.
 
-Unlike ordinary one-shot PDF translation prompts, this skill keeps a deterministic run manifest and uses `pdf2zh-next` / BabelDOC for the fragile parts: segmentation, placeholder preservation, formula/layout handling, and final PDF generation. Compared with a traditional Zotero plugin workflow, the user-facing setup is lighter: install a skill once, then invoke it from whichever compatible agent you already use.
+Unlike ordinary one-shot PDF translation prompts, this skill keeps a deterministic run manifest and uses `pdf2zh-next` / BabelDOC for the fragile parts: segmentation, placeholder preservation, formula/layout handling, and final PDF generation. When no API is configured or reachable, it falls back to an agent-native batch workflow with glossary extraction and validation instead of requiring a separate Zotero translation plugin.
 
 <p align="center">
-  <img src="./assets/current-chat-pipeline.svg" alt="Current-chat PDF translation pipeline" width="92%">
+  <img src="./assets/current-chat-pipeline.svg" alt="Zotero Translate workflow pipeline" width="92%">
 </p>
 
 ### 1.1 Features
 
 | Feature | Description |
 | --- | --- |
-| Agent-agnostic skill workflow | Designed for any agent that can load local skills and run bundled scripts, not only Codex. |
-| Current-chat translation | The active agent conversation writes `translations.jsonl`; no provider-specific translation credentials are required. |
+| API-first translation | Uses an OpenAI-compatible `/v1/chat/completions` endpoint when `base_url` or `api_port`, `api_key`, and `model` are configured or supplied in the prompt. |
+| Agent-native fallback | If the API route is unavailable, the active agent dispatches JSONL translation batches and validates the merged results before rendering. |
+| Automatic glossary support | Builds compact term-extraction batches, merges `source,target,tgt_lng` glossary CSV files, and injects matched terms into translation prompts. |
 | Layout-preserving rendering | PDF segmentation, placeholder protection, formula/layout handling, and rendering are delegated to `pdf2zh-next` / BabelDOC. |
 | No Zotero plugin setup | Use Zotero Desktop through your agent connector; no separate Zotero translation plugin is required. |
 | Self-contained runtime | The skill bootstraps its own Python venv and BabelDOC assets on first use. |
@@ -51,8 +50,7 @@ Unlike ordinary one-shot PDF translation prompts, this skill keeps a determinist
 | Explicit target language | The agent must ask for the target language when the prompt does not specify one. |
 | Full PDF by default | Unless the prompt specifies pages, the skill translates the whole PDF. |
 | Mono + dual by default | Produces translated-only and bilingual PDFs unless the user asks for one mode. |
-| Cross-platform scripts | Python entrypoints support Windows, macOS, and Linux; PowerShell wrappers remain for Windows users. |
-| Privacy-aware context | Context packs avoid local paths and personal storage details by default. |
+| Python-only scripts | Cross-platform Python entrypoints support Windows, macOS, and Linux; no PowerShell wrapper is required. |
 | Manifest-based cleanup | Temporary files are cleaned only after Zotero attachment is confirmed. |
 
 ### 1.2 Output Preview
@@ -65,15 +63,15 @@ The repository currently includes generated SVG diagrams. For a stronger GitHub 
 
 - `assets/preview-zotero-attachments.png`: Zotero parent item showing the original PDF plus generated mono and dual PDFs.
 - `assets/preview-mono-dual-pages.png`: side-by-side page preview of mono and dual outputs from the same paper.
-- `assets/preview-current-chat-run.png`: the agent conversation after collect, translation, render, and attach.
+- `assets/preview-agent-run.png`: the agent conversation after collect, API or fallback translation, render, and attach.
 
 ## 2. Recent Updates
 
-- **Cross-platform workflow**: `run_pdf2zh.py` is now the main entrypoint for Windows, macOS, and Linux.
-- **Current-chat only route**: removed background translator processes and provider-specific translation routes.
-- **Multilingual documentation**: English, Simplified Chinese, Traditional Chinese, Japanese, and Korean README files are available.
-- **Safer artifacts**: each run uses a unique temp directory and manifest-based cleanup.
-- **UTF-8 stable helpers**: CLI translator helpers force UTF-8 stdin/stdout/stderr for multilingual text and non-ASCII PDF names.
+- **API-first route**: `configure-api` and `api-translate` use OpenAI-compatible chat completion APIs when credentials and a model are available.
+- **Agent-batch fallback**: if the API route is unavailable, the skill builds JSONL batches for parallel agent translation with a default active-agent cap of `16`.
+- **Glossary extraction**: term batches and `merge_glossary.py` create BabelDOC-compatible `source,target,tgt_lng` CSV glossaries for prompt injection.
+- **Stronger validation**: `validate_translations.py` checks missing/duplicate/unknown IDs, source/id mismatches, empty targets, protected tokens, rich-text tag order, and reference-like translation warnings.
+- **Python-only workflow**: the skill now uses Python entrypoints only; PowerShell wrappers are no longer required.
 
 ## 3. Use
 
@@ -125,14 +123,23 @@ Open Zotero, select a paper item with a PDF attachment, then ask your agent:
 Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 ```
 
-Default behavior:
+Default behavior with API configured:
 
-1. Collect the full PDF.
-2. Translate segments in the active conversation into the specified target language.
-3. Render both mono and dual PDFs.
-4. Attach both PDFs to the original Zotero parent item.
-5. Verify attachments.
-6. Clean the temporary run directory.
+1. Collect the full PDF into stable text segments.
+2. Translate segments through the configured OpenAI-compatible API.
+3. Validate the translated JSONL.
+4. Render both mono and dual PDFs.
+5. Attach both PDFs to the original Zotero parent item.
+6. Verify attachments.
+7. Clean the temporary run directory.
+
+Fallback behavior without API:
+
+1. Build term-extraction batches unless auto glossary is disabled.
+2. Merge agent-produced glossary results into `auto_glossary.csv`.
+3. Build translation batches with matched glossary terms.
+4. Dispatch at most `16` active translation agents by default.
+5. Validate, render, attach, verify, and clean.
 
 If the prompt does not specify the target language, the agent should ask which language to translate into before running the collect phase.
 
@@ -140,10 +147,16 @@ If the prompt does not specify the target language, the agent should ask which l
 
 | Prompt | Result |
 | --- | --- |
-| `Use $zotero-translate to translate the selected Zotero PDF into Spanish.` | Full PDF, mono + dual output. |
+| `Use $zotero-translate to translate the selected Zotero PDF into Spanish.` | Full PDF, API-first route when configured, mono + dual output. |
 | `Use $zotero-translate to translate the selected Zotero PDF.` | Asks for the target language before running. |
+| `Use API port 8000, key sk-..., model qwen-plus.` | Stores local API config and prefers `api-translate`. |
+| `Use temperature 0.1 and qps 2.` | Passes API runtime parameters during `api-translate`. |
 | `Translate only pages 1-3, mono only.` | Passes `--pages "1-3"` and `--output-mode mono`. |
 | `Make a bilingual PDF only.` | Uses `--output-mode dual`. |
+| `Use 8 parallel agents.` | Uses `--max-parallel-agents 8` on the fallback batch route. |
+| `No auto glossary.` | Skips term extraction before fallback translation batches. |
+| `Use this glossary CSV: /path/terms.csv.` | Adds a user glossary with `source,target,tgt_lng` columns. |
+| `Force agent route.` | Skips API translation and uses the agent-batch route. |
 | `Translate this paper but keep artifacts for debugging.` | Skips cleanup so the run directory remains available. |
 
 ### 3.4 Requirements
@@ -154,7 +167,8 @@ If the prompt does not specify the target language, the agent should ask which l
 | Zotero Desktop | Source PDFs and final attachments live in Zotero. |
 | Zotero-capable agent connector | Reads selected items and attaches final PDFs. |
 | Internet on first runtime setup | Installs `pdf2zh-next`, `PyMuPDF`, and BabelDOC assets. |
-| Enough current-chat context | The active conversation translates `segments.jsonl`. |
+| OpenAI-compatible API | Optional but preferred for direct translation; requires base URL or port, API key, and model. |
+| Batch-capable agent | Needed only for the fallback route when API translation is unavailable or disabled. |
 
 You do not need to pre-install `pdf2zh`, BabelDOC, or a Zotero translation plugin. The skill prepares its own runtime under the skill directory.
 
@@ -165,11 +179,27 @@ skills/zotero-translate/.runtime/venv
 ~/.cache/babeldoc
 ```
 
+Optional API configuration is stored in:
+
+```text
+skills/zotero-translate/.runtime/api_config.json
+```
+
 These paths are intentionally excluded from version control.
 
 ### 3.5 Direct CLI Usage
 
 You normally run this through an agent, but the deterministic phases can be executed directly.
+
+Configure an OpenAI-compatible API once:
+
+```bash
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase configure-api \
+  --api-port 8000 \
+  --api-key "sk-..." \
+  --api-model "model-name"
+```
 
 Collect segments:
 
@@ -189,7 +219,36 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
   --output-mode mono
 ```
 
-After the active conversation writes `translations.jsonl`, render final PDFs:
+Translate through the API route:
+
+```bash
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase api-translate \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>"
+```
+
+If `api-translate` reports `api_unavailable`, run the fallback batch route:
+
+```bash
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase build-glossary-batches \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>"
+
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase merge-glossary \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>"
+
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase build-batches \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>" \
+  --max-parallel-agents 16
+
+python skills/zotero-translate/scripts/run_pdf2zh.py \
+  --phase validate \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>"
+```
+
+Render final PDFs:
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
@@ -205,19 +264,27 @@ python skills/zotero-translate/scripts/cleanup_artifacts.py \
   --confirm-attached
 ```
 
-PowerShell wrappers with equivalent parameters are available under [`skills/zotero-translate/scripts`](./skills/zotero-translate/scripts).
+All maintained entrypoints are Python scripts under [`skills/zotero-translate/scripts`](./skills/zotero-translate/scripts).
 
 ## 4. Technical Details
 
-### 4.1 Current-Chat Translation Route
+### 4.1 Translation Routes
 
-The workflow has one route:
+The preferred route is API-first:
 
 ```text
-collect -> translate in current chat -> render -> attach -> cleanup
+collect -> api-translate -> validate -> render -> attach -> cleanup
 ```
 
-The collect phase uses `collect_segments.py` as a `pdf2zh` CLI translator. It records actual source segments into `segments.jsonl` and returns the original text to keep the collection pass moving. The active conversation reads the context pack and writes one translated JSON object per line to `translations.jsonl`. The render phase uses `lookup_translator.py` to map stable source hashes to translations.
+The collect phase uses `collect_segments.py` as a `pdf2zh` CLI translator. It records actual source segments into `segments.jsonl` and returns the original text to keep the collection pass moving. The API route uses `api_translate_segments.py` to call an OpenAI-compatible chat-completions endpoint and writes `api_results.jsonl`; validation merges those results into `translations.jsonl`.
+
+When no API is configured, unreachable, or explicitly skipped, the fallback route is:
+
+```text
+collect -> term batches -> term agents -> merge glossary -> translation batches -> translation agents -> validate -> render -> attach -> cleanup
+```
+
+The fallback route uses `build_term_batches.py`, `merge_glossary.py`, and `build_batches.py` to prepare deterministic JSONL work units. The render phase always uses `lookup_translator.py` to map stable source hashes to validated translations.
 
 ### 4.2 Run Directory
 
@@ -230,12 +297,18 @@ zotero-translate-runs/<pdf-stem>-<hash>-<timestamp>/
 ├── segments.jsonl
 ├── translations.jsonl
 ├── missing_segments.jsonl
+├── api_results.jsonl
+├── auto_glossary.csv
+├── term_batches/
+├── glossary_results/
+├── batches/
+├── batch_results/
 ├── collect-output/
 ├── render-output/
 └── tmp/
 ```
 
-The run directory can contain source and translated text. Clean it after successful Zotero attachment unless debugging is needed.
+The run directory can contain source text, translated text, and glossary terms. Clean it after successful Zotero attachment unless debugging is needed.
 
 ### 4.3 Output Modes
 
@@ -253,15 +326,18 @@ Selection order:
 
 1. `--python-exe`, if provided.
 2. The Python interpreter that launched `run_pdf2zh.py`.
-3. For PowerShell wrappers: `python3`, `python`, `py -3`, then an available bundled runtime as a fallback.
+3. A bundled Codex Python runtime, when available.
+4. `python3`, `python`, then `py -3` on Windows.
 
 ### 4.5 Privacy Model
 
-The skill does not send documents to a separate translation service. Translation happens in the active conversation that is already handling the user request.
+The skill sends extracted PDF segments only to the route the user or local configuration selects.
 
 Important boundaries:
 
-- Zotero metadata and extracted PDF segments are visible to the active conversation.
+- API route: Zotero metadata used by the run, extracted PDF segments, glossary terms, and prompt instructions are sent to the configured OpenAI-compatible endpoint.
+- API credentials are stored only in `skills/zotero-translate/.runtime/api_config.json`, which is ignored by git; run manifests do not store plaintext API keys.
+- Agent-batch fallback: extracted PDF segments and glossary terms are visible to the active agent and any batch agents it spawns.
 - Context packs redact common local path fields by default.
 - Temporary run directories may contain source and translated text until cleanup.
 
@@ -270,13 +346,9 @@ Important boundaries:
 ```text
 .
 ├── README.md
-├── docs/
-│   ├── README_zh-CN.md
-│   ├── README_zh-TW.md
-│   ├── README_ja-JP.md
-│   └── README_ko-KR.md
 ├── LICENSE
 ├── assets/
+│   ├── zotero-translate-hero.png
 │   ├── zotero-translate-banner.svg
 │   ├── current-chat-pipeline.svg
 │   └── output-modes.svg
@@ -286,6 +358,12 @@ Important boundaries:
         ├── agents/
         ├── references/
         └── scripts/
+            ├── run_pdf2zh.py
+            ├── api_translate_segments.py
+            ├── build_batches.py
+            ├── build_term_batches.py
+            ├── merge_glossary.py
+            └── validate_translations.py
 ```
 
 ### 4.7 Troubleshooting
@@ -294,7 +372,9 @@ Important boundaries:
 | --- | --- |
 | `No usable Python 3 executable was found` | Install Python 3.10+ or pass `--python-exe /path/to/python`. |
 | Runtime setup is slow | First run installs `pdf2zh-next`, `PyMuPDF`, fonts, and BabelDOC assets. |
-| Render reports missing segments | Open `missing_segments.jsonl`, translate the listed ids, append to `translations.jsonl`, and rerun render. |
+| `api-translate` reports `api_unavailable` | Run `configure-api` with a reachable base URL or port, API key, and model; or use the agent-batch fallback route. |
+| API output fails validation | Re-run with lower temperature, stricter `--api-extra-instruction`, or use fallback batches for the failed segments. |
+| Render reports missing segments | Open `missing_segments.jsonl`, translate the listed ids, append or revalidate, and rerun render. |
 | Zotero attachment fails | Confirm Zotero Desktop is open and your agent has a working Zotero connector. |
 | Disk usage grows | Clean completed run directories; keep `.runtime/venv` and `~/.cache/babeldoc` for faster future runs. |
 
@@ -302,7 +382,7 @@ Important boundaries:
 
 ### 5.1 Acknowledgements
 
-This skill is built around the layout-preserving PDF workflow pioneered by [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README organization also follows the style of public skill repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
+This skill is built around the layout-preserving PDF workflow pioneered by [PDFMathTranslate / PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) and its `pdf2zh` / BabelDOC ecosystem. The README organization follows the style of public skill repositories such as [greensock/gsap-skills](https://github.com/greensock/gsap-skills) and [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills).
 
 This repository is not affiliated with Zotero, PDFMathTranslate, BabelDOC, Greensock, or Obsidian.
 

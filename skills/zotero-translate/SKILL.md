@@ -1,95 +1,113 @@
 ---
 name: zotero-translate
-description: Translate Zotero PDF attachments on Windows, macOS, or Linux with a current-chat workflow that uses pdf2zh/BabelDOC for PDF segmentation, formula/layout preservation, and rendering while the active assistant conversation translates collected segments. Use when an agent needs to translate a selected Zotero PDF, generate mono and/or dual PDFs, and attach the final PDF outputs back to the same Zotero parent item without translation credentials or Zotero translation plugin setup.
+description: Translate Zotero PDF attachments with an API-first or agent-batch pdf2zh/BabelDOC workflow. Use when an agent needs to translate a selected Zotero PDF, render mono and/or bilingual PDFs, and attach the outputs back to the same Zotero parent item.
 ---
 
 # Zotero Translate
 
-Use this skill to translate a Zotero PDF attachment through a single current-chat route. The cross-platform Python scripts use `pdf2zh-next` for segmentation and PDF rendering, and the active assistant conversation translates the collected text segments. The workflow is agent-agnostic: any agent that can load local skills, run scripts, and access Zotero Desktop through a connector can use it.
+Translate Zotero PDF attachments through a deterministic Python pipeline:
+
+```text
+collect -> api translate -> validate -> render -> attach -> cleanup
+```
+
+If no API config is provided or detected, use the agent-batch route:
+
+```text
+collect -> term batches -> term agents -> merge glossary -> translation batches -> translation agents -> validate -> render -> attach -> cleanup
+```
 
 ## Defaults
 
+- Ask for the target language if the prompt does not specify one.
 - Translate the full PDF unless the user specifies pages.
-- Generate both mono and dual PDFs unless the user asks for only one output type.
-- Use `-WatermarkOutputMode no_watermark`.
-- Do not assume a default target language. If the user has not specified the target language, ask which language to translate into before starting a new translation run.
-- Attach all final PDF outputs to the same Zotero parent item.
-- Keep the skill-local runtime and BabelDOC asset cache by default.
-- Prefer `python scripts/run_pdf2zh.py` on all platforms. Use `.ps1` wrappers only when the user explicitly wants PowerShell commands.
-- Do not require a Zotero translation plugin or a preconfigured pdf2zh/BabelDOC environment; the skill bootstraps its local runtime on first use.
-
-## Prompt Mapping
-
-- If the user gives a target language, pass it with `-LangOut <target-language>` / `--lang-out <target-language>`.
-- If the user asks to translate but does not give a target language, ask for the target language instead of defaulting to Chinese or any other language.
-- If the user asks for translated-only, target-language-only, or mono output, use `-OutputMode mono`.
-- If the user asks for bilingual, side-by-side, or dual output, use `-OutputMode dual`.
-- If the user asks for both, or gives no output preference, use `-OutputMode both`.
-- If the user specifies pages, pass the exact page range to `-Pages`; otherwise omit `-Pages` for a full PDF run.
+- Generate both mono and dual PDFs unless the user asks for one mode.
+- Use `--watermark-output-mode no_watermark`.
+- Prefer direct OpenAI-compatible API translation when `api_base_url`/`api_port`, `api_key`, and `model` are configured or supplied in the prompt.
+- If API config is unavailable or `api-translate` reports `api_unavailable`, use agent-batch translation.
+- Extract a compact glossary with term agents before agent-batch translation unless the user says no auto glossary.
+- Default active agent cap for the batch route: `16`. If the user says "use N parallel agents/subagents", pass `--max-parallel-agents N`.
+- Attach final PDFs to the original Zotero parent item.
+- Use Python scripts only; no PowerShell wrapper is required.
+- Keep BabelDOC internal auto glossary disabled during collect/render; use this skill's glossary CSV only on the agent-batch/API prompt side.
 
 ## Workflow
 
-1. Use Zotero MCP to identify the active regular item and PDF attachment path.
-2. Run `scripts/run_pdf2zh.py` in the default collect phase.
-3. Read `references/current-chat-workflow.md`, `context_pack.md`, and `segments.jsonl`.
-4. Translate segments in the active conversation and write `translations.jsonl`.
-5. Run `scripts/run_pdf2zh.py --phase render --run-dir <run-dir>`.
-6. Use `references/zotero-attach.md` to attach every final PDF under the original Zotero parent item.
-7. Verify the Zotero parent item attachments.
-8. Unless the user asked to keep artifacts, run `scripts/cleanup_artifacts.py --run-dir <run-dir> --confirm-attached`.
+1. Identify the active Zotero regular item and PDF attachment path.
+2. If the user provides API settings, save them first:
 
-## Commands
+   ```bash
+   python scripts/run_pdf2zh.py --phase configure-api --api-port "<port>" --api-key "<key>" --api-model "<model>"
+   ```
 
-Default full-PDF collect phase:
+3. Run collect. Pass API settings here instead if the user provided them in the same prompt:
 
-```bash
-python "<path-to-installed-zotero-translate-skill>/scripts/run_pdf2zh.py" \
-  --input-pdf "<path-to-zotero-pdf>" \
-  --lang-out "<target-language>"
-```
+   ```bash
+   python scripts/run_pdf2zh.py --input-pdf "<pdf>" --lang-out "<target-language>"
+   ```
 
-Collect only pages 1-3 and generate mono output during render:
+4. Try API translation unless the user explicitly asks for the agent route:
 
-```bash
-python "<path-to-installed-zotero-translate-skill>/scripts/run_pdf2zh.py" \
-  --input-pdf "<path-to-zotero-pdf>" \
-  --lang-out "<target-language>" \
-  --pages "1-3" \
-  --output-mode mono
-```
+   ```bash
+   python scripts/run_pdf2zh.py --phase api-translate --run-dir "<run-dir>"
+   ```
 
-Render after `translations.jsonl` has been written:
+5. If API translation validates successfully, skip to render. If it reports `api_unavailable`, read `references/workflow.md`, `context_pack.md`, and `segments.jsonl`, then use the agent-batch route.
+6. Unless the user says no auto glossary, build term batches:
 
-```bash
-python "<path-to-installed-zotero-translate-skill>/scripts/run_pdf2zh.py" \
-  --phase render \
-  --run-dir "<run-dir-from-collect-output>"
-```
+   ```bash
+   python scripts/run_pdf2zh.py --phase build-glossary-batches --run-dir "<run-dir>"
+   ```
 
-Clean intermediate artifacts after Zotero attachment is confirmed:
+7. Spawn agents for `term_batches/term_batch_*.jsonl` using the matching `term_batch_*.prompt.md`. Save each result to `glossary_results/term_batch_*.jsonl`.
+8. Merge the glossary:
 
-```bash
-python "<path-to-installed-zotero-translate-skill>/scripts/cleanup_artifacts.py" \
-  --run-dir "<run-dir-from-collect-output>" \
-  --confirm-attached
-```
+   ```bash
+   python scripts/run_pdf2zh.py --phase merge-glossary --run-dir "<run-dir>"
+   ```
 
-## Artifact Rules
+9. Run translation batch build:
 
-- Each run lives under the platform temp directory at `zotero-translate-runs/<run-id>`.
-- The run directory contains `run_manifest.json`, `context_pack.md`, `segments.jsonl`, `translations.jsonl`, render outputs, collect outputs, and temporary files.
-- `KeepArtifacts` skips cleanup for debugging.
-- Do not delete `<skill-dir>/.runtime/venv` or `~/.cache/babeldoc` during normal cleanup.
+   ```bash
+   python scripts/run_pdf2zh.py --phase build-batches --run-dir "<run-dir>" --max-parallel-agents 16
+   ```
 
-## Runtime Rules
+10. Spawn agents for `batches/batch_*.jsonl`, at no more than `maxParallelAgents` active workers at once. Save each result to `batch_results/batch_*.jsonl`.
+11. Validate and merge:
 
-- `run_pdf2zh.py` creates `<skill-dir>/.runtime/venv` when needed.
-- If `--python-exe` is provided, use it as the base Python for the venv.
-- Otherwise, use the Python interpreter that launched `run_pdf2zh.py`; PowerShell wrappers first look for `python3`, `python`, or `py -3`, then use an available bundled runtime only as a fallback.
+   ```bash
+   python scripts/run_pdf2zh.py --phase validate --run-dir "<run-dir>"
+   ```
+
+12. Render:
+
+   ```bash
+   python scripts/run_pdf2zh.py --phase render --run-dir "<run-dir>"
+   ```
+
+13. Follow `references/zotero-attach.md` to attach all rendered PDFs to the Zotero parent item.
+14. Verify attachments. Unless the user asked to keep artifacts, clean:
+
+   ```bash
+   python scripts/cleanup_artifacts.py --run-dir "<run-dir>" --confirm-attached
+   ```
+
+## Prompt Mapping
+
+- Pages: pass `--pages "<range>"`.
+- Mono only: pass `--output-mode mono`.
+- Dual/bilingual only: pass `--output-mode dual`.
+- Both/default: pass `--output-mode both`.
+- API base URL or port: pass `--api-base-url "<url>"` or `--api-port "<port>"`.
+- API key: pass `--api-key "<key>"`; it is stored under `.runtime/api_config.json` and not written to the run manifest.
+- API model: pass `--api-model "<model>"`; if omitted, `configure-api` may discover the first model from `/v1/models`.
+- API parameters: pass `--api-temperature`, `--api-max-tokens`, `--api-qps`, `--api-timeout`, `--api-retries`, or `--api-extra-instruction`.
+- Force agent route: pass `--force-agent-route` or skip `api-translate`.
+- Parallel count: pass `--max-parallel-agents <N>`.
+- No auto glossary: pass `--no-auto-glossary` and skip term batches.
+- User glossary: pass `--glossary-csv "<csv>"` during `build-batches`; CSV columns are `source,target,tgt_lng`.
+- Current-chat only/no batch agents: skip `build-batches`; translate `segments.jsonl` directly and validate it with `validate_translations.py`.
 
 ## Validation
 
-- Run `python scripts/ensure_runtime.py` to create or verify the skill-local runtime.
-- Run `python scripts/run_pdf2zh.py --input-pdf <pdf> --lang-out <target-language> --pages "1" --dry-run` to inspect collect command assembly.
-- Test collector and lookup helpers with a short segment before a full PDF run.
-- After attaching PDFs, re-read the Zotero parent item and confirm the new attachments.
+Before rendering, validation must pass. It checks missing/duplicate/unknown IDs, source/id mismatches, empty translations, protected token preservation, rich-text tag order, and reference-like translation warnings.

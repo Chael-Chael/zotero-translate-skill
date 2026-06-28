@@ -1,4 +1,4 @@
 interface:
   display_name: "Zotero Translate"
-  short_description: "Translate Zotero PDFs in current chat"
-  default_prompt: "Use $zotero-translate to translate the selected Zotero PDF after confirming the target language, then render mono and dual PDFs and attach the outputs back to Zotero."
+  short_description: "Translate Zotero PDFs with API-first or agent-batch routing"
+  default_prompt: "Use $zotero-translate to translate the selected Zotero PDF after confirming the target language. If API settings are supplied or configured, use direct API translation; otherwise use the agent-batch route with glossary extraction, validate results, render mono and dual PDFs, and attach the outputs back to Zotero."
