@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/zotero-translate-banner.svg" alt="Zotero Translate Skill banner" width="100%">
+  <img src="../assets/zotero-translate-hero.png" alt="Zotero Translate Skill hero banner" width="100%">
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 
 # Zotero Translate Skill
 
-Zotero の PDF 添付ファイルを中国語へ翻訳しながら、元の PDF レイアウトをできるだけ維持する skill です。この skill は Codex だけでなく、ローカル skills を読み込める任意の agent で使えます。`pdf2zh` / BabelDOC の分割・レンダリング機能と、**現在のチャットで行う翻訳ループ**を組み合わせています。現在の agent 会話が抽出されたテキストセグメントを翻訳し、この skill が mono / dual PDF をレンダリングして Zotero に添付します。
+Zotero の PDF 添付ファイルをユーザー指定の target language へ翻訳しながら、元の PDF レイアウトをできるだけ維持する skill です。この skill は Codex だけでなく、ローカル skills を読み込める任意の agent で使えます。`pdf2zh` / BabelDOC の分割・レンダリング機能と、**現在のチャットで行う翻訳ループ**を組み合わせています。現在の agent 会話が抽出されたテキストセグメントを翻訳し、この skill が mono / dual PDF をレンダリングして Zotero に添付します。
 
 大きな利点はセットアップの軽さです。Zotero 翻訳 plugin をインストールしたり、PDF 翻訳環境を手作業で設定したり、`pdf2zh` / BabelDOC を事前に準備したりする必要はありません。skill をインストールすると、初回実行時にローカル runtime を自動で準備します。
 
@@ -29,7 +29,8 @@ Zotero の PDF 添付ファイルを中国語へ翻訳しながら、元の PDF 
 - **手動環境設定不要**：skill は初回実行時にローカル venv と必要な runtime を準備します。
 - **Zotero 中心の workflow**：Zotero の PDF 添付から収集し、最終 PDF をレンダリングして元の Zotero item に添付します。
 - **クロスプラットフォーム**：Python entrypoint は Windows、macOS、Linux に対応。Windows 向け PowerShell wrapper もあります。
-- **mono、dual、both**：既定では中国語のみ PDF と bilingual PDF の両方を生成します。
+- **target language is required**：ユーザーが翻訳先言語を指定していない場合、agent は実行前に確認します。
+- **mono、dual、both**：既定では target-language PDF と bilingual PDF の両方を生成します。
 - **privacy-aware context pack**：既定ではローカルパスや個人ストレージ情報を書き込みません。
 - **manifest-based cleanup**：Zotero への添付を確認してから一時実行ディレクトリを削除します。
 
@@ -118,16 +119,18 @@ skills/zotero-translate/.runtime/venv
 agent に次のように依頼します。
 
 ```text
-Use $zotero-translate to translate the selected Zotero PDF.
+Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 ```
 
 既定の動作：
 
-1. PDF 全体を翻訳します。
+1. PDF 全体をユーザー指定の target language へ翻訳します。
 2. mono と dual PDF の両方を生成します。
 3. watermark は付けません。
 4. final PDFs を同じ Zotero parent item に添付します。
 5. Zotero attachment を確認した後、中間実行 artifacts を削除します。
+
+prompt に target language が含まれていない場合、agent は collect phase を実行する前に翻訳先言語を質問します。
 
 ## Prompt Controls
 

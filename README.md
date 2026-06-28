@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/zotero-translate-banner.svg" alt="Zotero Translate Skill banner" width="100%">
+  <img src="./assets/zotero-translate-hero.png" alt="Zotero Translate Skill hero banner" width="100%">
 </div>
 
 <div align="center">
@@ -15,11 +15,14 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 
 # Zotero Translate Skill
 
-**Translate Zotero PDF attachments into Chinese while preserving the original PDF layout.**
+<p>
+  <strong>Install a skill. Translate the paper. Keep the layout.</strong>
+</p>
 
-This repository packages a reusable skill for any agent that supports skill-style workflows. It combines the layout-preserving PDF workflow of `pdf2zh` / BabelDOC with a **current-chat translation loop**. The active conversation translates the collected segments, while the scripts handle PDF segmentation, rendering, Zotero attachment guidance, and cleanup.
-
-The main benefit is simple setup: users do **not** need to install a Zotero plugin, configure a translation provider, or prepare a separate PDF translation environment. Install the skill, let it bootstrap its own runtime, and run it from your agent.
+<p>
+  Agent-native Zotero PDF translation powered by pdf2zh and BabelDOC.<br>
+  No Zotero plugin. No manual setup.
+</p>
 
 [Install](#31-installation) · [Quick Start](#32-quick-start) · [CLI Usage](#35-direct-cli-usage) · [Technical Details](#4-technical-details) · [Troubleshooting](#47-troubleshooting)
 
@@ -47,6 +50,7 @@ Unlike ordinary one-shot PDF translation prompts, this skill keeps a determinist
 | No Zotero plugin setup | Use Zotero Desktop through your agent connector; no separate Zotero translation plugin is required. |
 | Self-contained runtime | The skill bootstraps its own Python venv and BabelDOC assets on first use. |
 | Zotero-native output | Final PDFs are attached to the original Zotero parent item. |
+| Explicit target language | The agent must ask for the target language when the prompt does not specify one. |
 | Full PDF by default | Unless the prompt specifies pages, the skill translates the whole PDF. |
 | Mono + dual by default | Produces translated-only and bilingual PDFs unless the user asks for one mode. |
 | Cross-platform scripts | Python entrypoints support Windows, macOS, and Linux; PowerShell wrappers remain for Windows users. |
@@ -120,23 +124,26 @@ The deterministic workflow is Python-based and portable. A compatible agent only
 Open Zotero, select a paper item with a PDF attachment, then ask your agent:
 
 ```text
-Use $zotero-translate to translate the selected Zotero PDF.
+Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 ```
 
 Default behavior:
 
 1. Collect the full PDF.
-2. Translate segments in the active conversation.
+2. Translate segments in the active conversation into the specified target language.
 3. Render both mono and dual PDFs.
 4. Attach both PDFs to the original Zotero parent item.
 5. Verify attachments.
 6. Clean the temporary run directory.
 
+If the prompt does not specify the target language, the agent should ask which language to translate into before running the collect phase.
+
 ### 3.3 Prompt Examples
 
 | Prompt | Result |
 | --- | --- |
-| `Use $zotero-translate to translate the selected Zotero PDF.` | Full PDF, mono + dual output. |
+| `Use $zotero-translate to translate the selected Zotero PDF into Spanish.` | Full PDF, mono + dual output. |
+| `Use $zotero-translate to translate the selected Zotero PDF.` | Asks for the target language before running. |
 | `Translate only pages 1-3, mono only.` | Passes `--pages "1-3"` and `--output-mode mono`. |
 | `Make a bilingual PDF only.` | Uses `--output-mode dual`. |
 | `Translate this paper but keep artifacts for debugging.` | Skips cleanup so the run directory remains available. |
@@ -170,7 +177,8 @@ Collect segments:
 
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
-  --input-pdf "/path/to/paper.pdf"
+  --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja"
 ```
 
 Collect selected pages and request mono output:
@@ -178,6 +186,7 @@ Collect selected pages and request mono output:
 ```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --input-pdf "/path/to/paper.pdf" \
+  --lang-out "ja" \
   --pages "1-3" \
   --output-mode mono
 ```

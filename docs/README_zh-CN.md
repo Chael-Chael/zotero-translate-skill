@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/zotero-translate-banner.svg" alt="Zotero Translate Skill banner" width="100%">
+  <img src="../assets/zotero-translate-hero.png" alt="Zotero Translate Skill hero banner" width="100%">
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 
 # Zotero Translate Skill
 
-将 Zotero PDF 附件翻译成中文，同时尽量保留原 PDF 的排版。这个 skill 适用于任何支持本地 skills 的 agent，不限于 Codex。它结合了 `pdf2zh` / BabelDOC 的分段与渲染能力，以及 **当前对话翻译循环**：当前 agent 对话负责翻译抽取出的文本片段，skill 再渲染 mono / dual PDF，并把结果挂回 Zotero。
+将 Zotero PDF 附件翻译成用户指定的目标语言，同时尽量保留原 PDF 的排版。这个 skill 适用于任何支持本地 skills 的 agent，不限于 Codex。它结合了 `pdf2zh` / BabelDOC 的分段与渲染能力，以及 **当前对话翻译循环**：当前 agent 对话负责翻译抽取出的文本片段，skill 再渲染 mono / dual PDF，并把结果挂回 Zotero。
 
 核心价值是安装简单：不需要安装 Zotero 翻译插件，不需要手工配置 PDF 翻译环境，也不需要预先配置 `pdf2zh` / BabelDOC。安装 skill 后，它会在首次运行时自举本地运行时。
 
@@ -29,7 +29,8 @@
 - **无需手工配置环境**：skill 首次运行会创建本地 venv 并安装所需运行时。
 - **Zotero 优先**：从 Zotero PDF 附件收集文本，渲染最终 PDF，并挂回原 Zotero 条目。
 - **跨平台脚本**：Python 主入口支持 Windows、macOS、Linux；Windows 用户仍可使用 PowerShell wrapper。
-- **mono、dual 或 both**：默认同时生成中文译文 PDF 和双语 PDF。
+- **必须指定目标语言**：如果用户没有说明翻译成什么语言，agent 必须先询问目标语言。
+- **mono、dual 或 both**：默认同时生成目标语言译文 PDF 和双语 PDF。
 - **隐私友好的上下文包**：默认不写入本地路径和个人存储细节。
 - **基于 manifest 的清理**：只有确认 Zotero 附件已写回后，才清理临时运行目录。
 
@@ -118,16 +119,18 @@ skills/zotero-translate/.runtime/venv
 对你的 agent 说：
 
 ```text
-Use $zotero-translate to translate the selected Zotero PDF.
+Use $zotero-translate to translate the selected Zotero PDF into Japanese.
 ```
 
 默认行为：
 
-1. 翻译整个 PDF。
+1. 将整个 PDF 翻译成用户指定的目标语言。
 2. 同时生成 mono 和 dual PDF。
 3. 不添加水印。
 4. 把最终 PDF 附加到同一个 Zotero parent item。
 5. 验证 Zotero 附件后清理中间运行目录。
+
+如果用户没有说明目标语言，agent 应先询问“要翻译成哪种语言？”，不能默认翻译成中文或其它语言。
 
 ## Prompt 控制
 
