@@ -28,8 +28,6 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 
 </div>
 
----
-
 ## 1. What Is This?
 
 Zotero Translate Skill is for academic reading workflows where the PDF layout matters. It collects real text segments from a Zotero PDF attachment, asks the active agent conversation to translate those segments, then renders final PDFs and attaches them back to the same Zotero parent item.
