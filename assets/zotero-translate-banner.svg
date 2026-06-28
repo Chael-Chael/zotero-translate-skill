@@ -1,0 +1,30 @@
+<svg width="1280" height="420" viewBox="0 0 1280 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="420" rx="28" fill="#111827"/>
+  <rect x="40" y="40" width="1200" height="340" rx="24" fill="#F8FAFC"/>
+  <rect x="78" y="78" width="320" height="264" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="112" y="116" width="252" height="22" rx="6" fill="#2563EB"/>
+  <rect x="112" y="160" width="214" height="14" rx="7" fill="#94A3B8"/>
+  <rect x="112" y="190" width="248" height="14" rx="7" fill="#CBD5E1"/>
+  <rect x="112" y="220" width="192" height="14" rx="7" fill="#CBD5E1"/>
+  <rect x="112" y="262" width="252" height="46" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="136" y="292" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#1D4ED8">Zotero PDF</text>
+  <path d="M440 210H555" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <path d="M528 178L560 210L528 242" stroke="#64748B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="595" y="86" width="265" height="248" rx="18" fill="#0F172A"/>
+  <rect x="624" y="118" width="205" height="18" rx="9" fill="#38BDF8"/>
+  <rect x="624" y="160" width="180" height="12" rx="6" fill="#94A3B8"/>
+  <rect x="624" y="188" width="210" height="12" rx="6" fill="#64748B"/>
+  <rect x="624" y="216" width="150" height="12" rx="6" fill="#64748B"/>
+  <rect x="624" y="258" width="76" height="36" rx="10" fill="#22C55E"/>
+  <rect x="714" y="258" width="116" height="36" rx="10" fill="#F59E0B"/>
+  <text x="626" y="321" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" fill="#E2E8F0">current chat translator</text>
+  <path d="M900 210H1015" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <path d="M988 178L1020 210L988 242" stroke="#64748B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="1058" y="78" width="144" height="264" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="1086" y="112" width="88" height="112" rx="12" fill="#DBEAFE"/>
+  <rect x="1086" y="244" width="88" height="18" rx="9" fill="#2563EB"/>
+  <rect x="1086" y="278" width="62" height="12" rx="6" fill="#CBD5E1"/>
+  <rect x="1086" y="302" width="74" height="12" rx="6" fill="#CBD5E1"/>
+  <text x="78" y="376" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#0F172A">Zotero Translate Skill</text>
+  <text x="392" y="376" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#475569">layout-preserving PDF translation without translation API keys</text>
+</svg>

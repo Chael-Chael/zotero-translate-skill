@@ -1,0 +1,15 @@
+# Skill runtime and package caches
+skills/**/.runtime/
+skills/**/__pycache__/
+skills/**/*.pyc
+
+# Local test and run artifacts
+zotero-translate-runs/
+*.log
+*.tmp
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
