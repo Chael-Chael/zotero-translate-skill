@@ -130,7 +130,7 @@ Install the bridge once in Zotero for attachment import:
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-The XPI is generic and does not contain a shared token. It declares Zotero `7.0` through `9.0.*` compatibility. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
+The XPI is generic and does not contain a shared token. It declares Zotero `6.999` through `9.0.*` compatibility, matching Zotero's documented plugin compatibility format. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
 
 ### 3.2 Quick Start
 

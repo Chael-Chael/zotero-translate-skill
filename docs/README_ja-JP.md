@@ -134,7 +134,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-この XPI に共有 token は含まれず、Zotero `7.0` から `9.0.*` までの互換性を宣言します。bridge は初回起動時に、ユーザーごとの `zotero-translate-bridge.json` を Zotero profile に書き込みます。
+この XPI に共有 token は含まれず、Zotero の公式プラグイン互換形式に合わせて Zotero `6.999` から `9.0.*` までの互換性を宣言します。bridge は初回起動時に、ユーザーごとの `zotero-translate-bridge.json` を Zotero profile に書き込みます。
 
 <a id="32-quick-start"></a>
 

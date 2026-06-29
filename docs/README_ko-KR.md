@@ -134,7 +134,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-이 XPI에는 공유 token이 들어 있지 않으며 Zotero `7.0`부터 `9.0.*`까지의 호환성을 선언합니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
+이 XPI에는 공유 token이 들어 있지 않으며 Zotero 공식 플러그인 호환 형식에 맞춰 Zotero `6.999`부터 `9.0.*`까지의 호환성을 선언합니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
 
 <a id="32-quick-start"></a>
 
