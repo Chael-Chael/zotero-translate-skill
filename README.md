@@ -44,7 +44,7 @@ Unlike ordinary one-shot PDF translation prompts, this skill keeps a determinist
 | Agent-native fallback | If the API route is unavailable, the active agent dispatches JSONL translation batches and validates the merged results before rendering. |
 | Automatic glossary support | Builds compact term-extraction batches, merges `source,target,tgt_lng` glossary CSV files, and injects matched terms into translation prompts. |
 | Layout-preserving rendering | PDF segmentation, placeholder protection, formula/layout handling, and rendering are delegated to `pdf2zh-next` / BabelDOC. |
-| Local Zotero bridge | Builds a minimal local XPI for attachment import and attempts profile-side loading before falling back to a reported installer state. |
+| Local Zotero bridge | Uses a minimal Zotero 7-9 XPI for attachment import, then attaches PDFs through token-protected local endpoints. |
 | Self-contained runtime | The skill bootstraps its own Python venv and BabelDOC assets on first use. |
 | Zotero-native output | Final PDFs are attached to the original Zotero parent item. |
 | Explicit target language | The agent must ask for the target language when the prompt does not specify one. |
@@ -70,7 +70,7 @@ The repository currently includes generated SVG diagrams. For a stronger GitHub 
 - **API-first route**: `check_api.py` verifies the configured OpenAI-compatible API before `api-translate` is used.
 - **Agent-batch fallback**: if the API route is unavailable, the skill builds JSONL batches for parallel agent translation with a default active-agent cap of `16`.
 - **Glossary extraction**: term batches and `merge_glossary.py` create BabelDOC-compatible `source,target,tgt_lng` CSV glossaries for prompt injection.
-- **Local Zotero bridge**: `ensure_zotero_bridge.py` builds a minimal XPI and attempts profile-side loading; `attach_with_bridge.py` attaches rendered PDFs through token-protected `health` / `attach` / `verify` endpoints once loaded.
+- **Local Zotero bridge**: install the release XPI in Zotero Add-ons once; `ensure_zotero_bridge.py --probe` imports the local token, and `attach_with_bridge.py` attaches rendered PDFs through token-protected `health` / `attach` / `verify` endpoints once loaded.
 - **Stronger validation**: `validate_translations.py` checks missing/duplicate/unknown IDs, source/id mismatches, empty targets, protected tokens, rich-text tag order, and reference-like translation warnings.
 - **Python-only workflow**: the skill now uses Python entrypoints only; PowerShell wrappers are no longer required.
 
@@ -130,7 +130,7 @@ Install the bridge once in Zotero for attachment import:
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-The XPI is generic and does not contain a shared token. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
+The XPI is generic and does not contain a shared token. It declares Zotero `7.0` through `9.*` compatibility. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
 
 ### 3.2 Quick Start
 

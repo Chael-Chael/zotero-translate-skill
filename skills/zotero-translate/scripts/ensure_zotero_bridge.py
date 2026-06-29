@@ -77,6 +77,14 @@ def bridge_source_dir() -> Path:
     return skill_dir() / "assets" / "zotero-translate-bridge"
 
 
+def bridge_addon_source_dir() -> Path:
+    source = bridge_source_dir()
+    for candidate in (source / "addon", source):
+        if (candidate / "manifest.json").exists() and (candidate / "bootstrap.js").exists():
+            return candidate
+    raise FileNotFoundError(f"Bridge source is incomplete: {source}")
+
+
 def load_or_create_config(path: Path) -> dict:
     config = read_json(path)
     config.setdefault("schemaVersion", 1)
@@ -103,10 +111,7 @@ def reset_directory(path: Path, allowed_parent: Path) -> None:
 
 
 def build_bridge_xpi(config: dict, xpi_output: str | None = None) -> tuple[Path, Path]:
-    source = bridge_source_dir()
-    if not (source / "manifest.json").exists() or not (source / "bootstrap.js").exists():
-        raise FileNotFoundError(f"Bridge source is incomplete: {source}")
-
+    source = bridge_addon_source_dir()
     build_dir = runtime_dir() / "build"
     xpi_path = Path(xpi_output).expanduser().resolve() if xpi_output else runtime_dir() / "zotero-translate-bridge.xpi"
     reset_directory(build_dir, runtime_dir())

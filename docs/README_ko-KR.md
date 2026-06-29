@@ -46,7 +46,7 @@ Zotero Translate Skill은 PDF 레이아웃을 유지해야 하는 학술 읽기 
 | Agent-native fallback | API를 사용할 수 없으면 현재 agent가 JSONL 번역 배치를 분배하고, 렌더링 전에 병합 결과를 검증합니다. |
 | 자동 용어 지원 | 용어 추출 배치를 만들고 `source,target,tgt_lng` glossary CSV를 병합하며, 매칭된 용어를 번역 프롬프트에 주입합니다. |
 | 레이아웃 보존 렌더링 | PDF 세그먼트 분할, placeholder 보존, 수식/레이아웃 처리, 렌더링은 `pdf2zh-next` / BabelDOC가 담당합니다. |
-| 로컬 Zotero bridge | 첨부파일 쓰기용 최소 로컬 XPI를 만들고 profile-side loading을 시도합니다. |
+| 로컬 Zotero bridge | Zotero 7-9 호환 최소 XPI로 첨부파일을 다시 쓰고 token으로 보호되는 로컬 endpoint를 통해 PDF를 추가합니다. |
 | 자체 포함 런타임 | 첫 실행 시 skill 디렉터리 아래에 Python venv를 만들고 BabelDOC asset을 준비합니다. |
 | Zotero-native 출력 | 최종 PDF가 원래 Zotero 상위 항목에 첨부됩니다. |
 | 명시적 대상 언어 | prompt에 대상 언어가 없으면 agent가 먼저 확인해야 합니다. |
@@ -72,7 +72,7 @@ Zotero Translate Skill은 PDF 레이아웃을 유지해야 하는 학술 읽기 
 - **API-first route**: `configure-api`와 `api-translate`는 인증 정보와 모델이 있을 때 OpenAI-compatible chat completion API를 사용합니다.
 - **Agent-batch fallback**: API route를 사용할 수 없으면 skill이 JSONL 배치를 만들고 agent 번역에 병렬로 분배합니다. 기본 active-agent 상한은 `16`입니다.
 - **용어 추출**: 용어 배치와 `merge_glossary.py`는 프롬프트 주입에 사용할 BabelDOC-compatible `source,target,tgt_lng` glossary CSV를 만듭니다.
-- **로컬 Zotero bridge**: `ensure_zotero_bridge.py`가 최소 XPI를 만들고 profile-side loading을 시도하며, bridge가 로드된 뒤 `attach_with_bridge.py`가 token으로 보호되는 `health` / `attach` / `verify` endpoint를 통해 PDF를 다시 씁니다.
+- **로컬 Zotero bridge**: release XPI를 Zotero Add-ons에 한 번 설치합니다. `ensure_zotero_bridge.py --probe`가 로컬 token을 가져오고, bridge가 로드된 뒤 `attach_with_bridge.py`가 token으로 보호되는 `health` / `attach` / `verify` endpoint를 통해 PDF를 다시 씁니다.
 - **강화된 검증**: `validate_translations.py`는 누락, 중복, 알 수 없는 ID, source/id 불일치, 빈 target, protected token, rich-text tag 순서, 참고문헌으로 보이는 세그먼트가 번역되는 위험을 검사합니다.
 - **Python-only workflow**: 현재 유지되는 entrypoint는 모두 Python 스크립트이며 PowerShell wrapper는 필요 없습니다.
 
@@ -134,7 +134,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-이 XPI에는 공유 token이 들어 있지 않습니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
+이 XPI에는 공유 token이 들어 있지 않으며 Zotero `7.0`부터 `9.*`까지의 호환성을 선언합니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
 
 <a id="32-quick-start"></a>
 

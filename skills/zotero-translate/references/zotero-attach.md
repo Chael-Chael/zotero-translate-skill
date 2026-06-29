@@ -18,7 +18,7 @@ If the bridge is unavailable, ask the user to install the release XPI once:
 https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi
 ```
 
-In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic; it writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.
+In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic, declares Zotero `7.0` through `9.*` compatibility, and writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.
 
 For development or local builds, build an XPI manually:
 
@@ -35,7 +35,7 @@ The script writes runtime-only files under `skills/zotero-translate/.runtime/zot
 
 These files contain the generated local token and must stay out of git.
 
-If profile-side loading returns `installed_unloaded`, Zotero did not load the bridge endpoint after restart. Do not attach or clean artifacts. Ask the user to install the release XPI through Zotero's Add-ons UI, then rerun `ensure_zotero_bridge.py --probe`.
+Do not use profile-side automatic extension loading as the normal install path. If a local development install fails to load the endpoint after restart, do not attach or clean artifacts. Ask the user to install the release XPI through Zotero's Add-ons UI, then rerun `ensure_zotero_bridge.py --probe`.
 
 ## Attach And Verify
 
