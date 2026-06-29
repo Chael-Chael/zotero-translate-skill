@@ -222,6 +222,7 @@ def build_context(script_dir: Path, runtime_python: str, input_pdf: Path, output
 
 
 def invoke_pdf2zh(pdf2zh_exe: str, args: list[str], temp_dir: Path) -> None:
+    assert_safe_pdf2zh_args(args)
     temp_dir.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     env["TEMP"] = str(temp_dir)
@@ -244,6 +245,66 @@ def add_output_mode_args(args_list: list[str], output_mode: str) -> None:
         args_list.append("--no-dual")
     elif output_mode == "dual":
         args_list.append("--no-mono")
+
+
+PUBLIC_MT_SERVICES = {
+    "bing",
+    "google",
+}
+FORBIDDEN_PDF2ZH_TOKENS = {
+    "--bing",
+    "--google",
+    "--bing-translate",
+    "--google-translate",
+    "--bing-translator",
+    "--google-translator",
+    "bingtranslator",
+    "googletranslator",
+    "bing-translate",
+    "google-translate",
+    "bing_translate",
+    "google_translate",
+    "deep-translator",
+    "deep_translator",
+    "deeptranslator",
+    "googletrans",
+    "translatepy",
+}
+FORBIDDEN_COMPACT_MARKERS = {
+    "bingtranslator",
+    "googletranslator",
+    "bingtranslate",
+    "googletranslate",
+    "deeptranslator",
+    "googletrans",
+    "translatepy",
+}
+TRANSLATOR_OPTION_NAMES = {
+    "-s",
+    "--service",
+    "--translator",
+    "--translation-service",
+    "--translate-service",
+}
+
+
+def assert_safe_pdf2zh_args(args_list: list[str]) -> None:
+    values = [str(value) for value in args_list]
+    lowered = [value.strip().lower() for value in values]
+    for value in lowered:
+        if value in FORBIDDEN_PDF2ZH_TOKENS:
+            raise ValueError(f"Forbidden public machine-translation backend in pdf2zh arguments: {value}")
+        if "=" in value:
+            option, option_value = value.split("=", 1)
+            if option in TRANSLATOR_OPTION_NAMES and option_value.strip().lower() in PUBLIC_MT_SERVICES:
+                raise ValueError(f"Forbidden public machine-translation backend in pdf2zh arguments: {value}")
+        compact = re.sub(r"[\s_\-]+", "", value)
+        if compact in FORBIDDEN_PDF2ZH_TOKENS or any(marker in compact for marker in FORBIDDEN_COMPACT_MARKERS):
+            raise ValueError(f"Forbidden public machine-translation backend in pdf2zh arguments: {value}")
+
+    for index, value in enumerate(lowered[:-1]):
+        if value in TRANSLATOR_OPTION_NAMES and lowered[index + 1] in PUBLIC_MT_SERVICES:
+            raise ValueError(f"Forbidden public machine-translation backend in pdf2zh arguments: {values[index]} {values[index + 1]}")
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -802,6 +863,7 @@ def collect_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> 
     add_output_mode_args(pdf_args, args.output_mode)
     pdf_args.append("--no-auto-extract-glossary")
     pdf_args += ["--clitranslator", "--clitranslator-command", collector_command, "--clitranslator-timeout", str(args.cli_translator_timeout)]
+    assert_safe_pdf2zh_args(pdf_args)
 
     if args.dry_run:
         manifest["status"] = "dry-run"
@@ -820,7 +882,7 @@ def collect_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> 
             "apiConfigured": api_ready,
             "pdf2zhExe": runtime["pdf2zhExe"],
             "args": pdf_args,
-            "nextStep": "Run --phase api-translate. If it reports api_unavailable, use the agent batch route.",
+            "nextStep": "If check_api.py returned apiAvailable true, run --phase api-translate. Otherwise use the agent batch route.",
         }, ensure_ascii=False, indent=2))
         return 0
 
@@ -842,7 +904,7 @@ def collect_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> 
         "translationsPath": str(translations_path),
         "segmentCount": segment_count,
         "preferredTranslationRoute": manifest.get("preferredTranslationRoute", "agent"),
-        "nextStep": "Run --phase api-translate. If it reports api_unavailable, use the agent batch route.",
+        "nextStep": "If check_api.py returned apiAvailable true, run --phase api-translate. Otherwise use the agent batch route.",
     }, ensure_ascii=False, indent=2))
     return 0
 
@@ -897,6 +959,7 @@ def render_phase(args: argparse.Namespace, script_dir: Path, runtime: dict) -> i
     add_output_mode_args(pdf_args, output_mode)
     pdf_args.append("--no-auto-extract-glossary")
     pdf_args += ["--clitranslator", "--clitranslator-command", lookup_command, "--clitranslator-timeout", str(args.cli_translator_timeout)]
+    assert_safe_pdf2zh_args(pdf_args)
 
     if args.dry_run:
         print(json.dumps({

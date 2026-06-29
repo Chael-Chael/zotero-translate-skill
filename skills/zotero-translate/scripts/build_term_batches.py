@@ -67,6 +67,9 @@ Output JSONL only, one object per term:
 
 Rules:
 
+- Prefer a cheap, low-latency model for this subagent unless the parent agent explicitly selected another model or quality failures require escalation.
+- Produce term targets yourself from the assigned JSONL and context pack.
+- Do not call third-party translation APIs, online translators, local MT/translation libraries, browser/search tools, pdf2zh/BabelDOC translation modes, or another agent/process to generate translated text.
 - Include domain-specific nouns or noun phrases, named methods, datasets, metrics, and named entities that are essential to the paper.
 - Use minimal terms, not full sentences or long clauses.
 - Do not extract math variables, formulas, citation markers, URLs, DOI strings, or generic words.

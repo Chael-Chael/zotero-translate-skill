@@ -67,7 +67,7 @@ The repository currently includes generated SVG diagrams. For a stronger GitHub 
 
 ## 2. Recent Updates
 
-- **API-first route**: `configure-api` and `api-translate` use OpenAI-compatible chat completion APIs when credentials and a model are available.
+- **API-first route**: `check_api.py` verifies the configured OpenAI-compatible API before `api-translate` is used.
 - **Agent-batch fallback**: if the API route is unavailable, the skill builds JSONL batches for parallel agent translation with a default active-agent cap of `16`.
 - **Glossary extraction**: term batches and `merge_glossary.py` create BabelDOC-compatible `source,target,tgt_lng` CSV glossaries for prompt injection.
 - **Stronger validation**: `validate_translations.py` checks missing/duplicate/unknown IDs, source/id mismatches, empty targets, protected tokens, rich-text tag order, and reference-like translation warnings.
@@ -222,6 +222,15 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 Translate through the API route:
 
 ```bash
+python skills/zotero-translate/scripts/check_api.py \
+  --api-port 8000 \
+  --api-key "sk-..." \
+  --api-model "model-name"
+```
+
+If the JSON result has `"apiAvailable": false`, pass `--force-agent-route` during collect, skip `api-translate`, and run the fallback batch route.
+
+```bash
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --phase api-translate \
   --run-dir "/tmp/zotero-translate-runs/<run-id>"
@@ -359,6 +368,7 @@ Important boundaries:
         ├── references/
         └── scripts/
             ├── run_pdf2zh.py
+            ├── check_api.py
             ├── api_translate_segments.py
             ├── build_batches.py
             ├── build_term_batches.py

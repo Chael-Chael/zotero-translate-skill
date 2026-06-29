@@ -191,7 +191,7 @@ def compact_segment(segment: dict, glossary_terms: list[tuple[str, str]]) -> dic
         "protectedTokens": inferred_tokens(text),
         "richTextTags": rich_text_tags(text),
         "sourceCharCount": len(text),
-        "outputInstruction": "Return one JSONL object with id, source, target, and optional notes. Put only the translated text in target.",
+        "outputInstruction": "Return one JSONL object with id, source, target, and optional notes. Translate the target yourself and put only the translated text in target.",
     }
     glossary = matched_glossary(glossary_terms, text)
     if glossary:
@@ -199,13 +199,38 @@ def compact_segment(segment: dict, glossary_terms: list[tuple[str, str]]) -> dic
     return compact
 
 
-def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_terms: list[tuple[str, str]]) -> dict:
+def prompt_text(target_language: str) -> str:
+    return f"""# Translation Batch
+
+Translate the assigned JSONL segments into {target_language}.
+
+Output JSONL only, one object per input segment:
+
+```json
+{{"id":"<same id>","source":"<same source text>","target":"<translated text>","notes":""}}
+```
+
+Rules:
+
+- Prefer a cheap, low-latency model for this subagent unless the parent agent explicitly selected another model or validation/quality failures require escalation.
+- Produce segment targets yourself from the assigned JSONL, context pack, and glossary.
+- Do not call third-party translation APIs, online translators, local MT/translation libraries, browser/search tools, pdf2zh/BabelDOC translation modes, or another agent/process to generate translated text.
+- Preserve `id` and `source` exactly.
+- Preserve protected tokens, math, citations, URLs, DOIs, arXiv IDs, XML-like tags, and rich-text tags exactly.
+- Use glossary target terms exactly when the source term appears.
+- Put only translated text in `target`; do not add explanations, labels, Markdown fences, or summaries.
+"""
+
+
+def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_terms: list[tuple[str, str]], target_language: str) -> dict:
     path = output_dir / f"batch_{index:04d}.jsonl"
+    prompt_path = output_dir / f"batch_{index:04d}.prompt.md"
     text = "\n".join(source_text(segment) for segment in segments)
     batch_terms = matched_glossary(glossary_terms, text, limit=120)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for segment in segments:
             handle.write(json.dumps(compact_segment(segment, glossary_terms), ensure_ascii=False, separators=(",", ":")) + "\n")
+    prompt_path.write_text(prompt_text(target_language), encoding="utf-8")
 
     glossary_path = None
     if batch_terms:
@@ -217,6 +242,7 @@ def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_ter
     summary = {
         "batch": path.name,
         "path": str(path),
+        "promptPath": str(prompt_path),
         "segments": len(segments),
         "chars": sum(len(source_text(segment)) for segment in segments),
         "glossaryTerms": len(batch_terms),
@@ -228,7 +254,7 @@ def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_ter
 
 def clear_old_batches(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    for pattern in ("batch_*.jsonl", "batch_*.glossary.md", "batch_manifest.json"):
+    for pattern in ("batch_*.jsonl", "batch_*.prompt.md", "batch_*.glossary.md", "batch_manifest.json"):
         for path in output_dir.glob(pattern):
             if path.is_file():
                 path.unlink()
@@ -255,6 +281,7 @@ def build_batches(
     manifest: list[dict] = []
     total_segments = 0
     skipped_translated = 0
+    inferred_target_language = target_language
 
     for lineno, segment in read_jsonl(segments_path):
         total_segments += 1
@@ -264,6 +291,8 @@ def build_batches(
             raise SystemExit(f"{segments_path}:{lineno}: missing id")
         if not text:
             raise SystemExit(f"{segments_path}:{lineno}: missing source")
+        if not inferred_target_language and segment.get("targetLanguage"):
+            inferred_target_language = str(segment["targetLanguage"])
         if sid in translated_ids:
             skipped_translated += 1
             continue
@@ -272,14 +301,14 @@ def build_batches(
         would_exceed_segments = len(batch) >= max_segments
         would_exceed_chars = bool(batch) and batch_chars + text_len > max_chars
         if would_exceed_segments or would_exceed_chars:
-            manifest.append(write_batch(output_dir, len(manifest) + 1, batch, glossary_terms))
+            manifest.append(write_batch(output_dir, len(manifest) + 1, batch, glossary_terms, inferred_target_language or "target language"))
             batch = []
             batch_chars = 0
         batch.append(segment)
         batch_chars += text_len
 
     if batch:
-        manifest.append(write_batch(output_dir, len(manifest) + 1, batch, glossary_terms))
+        manifest.append(write_batch(output_dir, len(manifest) + 1, batch, glossary_terms, inferred_target_language or "target language"))
 
     summary = {
         "segmentsPath": str(segments_path),
@@ -294,6 +323,7 @@ def build_batches(
         "dispatchWaves": (len(manifest) + max_parallel_agents - 1) // max_parallel_agents if max_parallel_agents else 0,
         "glossaryTermCount": len(glossary_terms),
         "glossaryCsvs": [str(path) for path in glossary_csvs or []],
+        "targetLanguage": inferred_target_language,
         "batches": manifest,
     }
     (output_dir / "batch_manifest.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")

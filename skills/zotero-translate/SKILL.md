@@ -24,9 +24,13 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
 - Generate both mono and dual PDFs unless the user asks for one mode.
 - Use `--watermark-output-mode no_watermark`.
 - Prefer direct OpenAI-compatible API translation when `api_base_url`/`api_port`, `api_key`, and `model` are configured or supplied in the prompt.
-- If API config is unavailable or `api-translate` reports `api_unavailable`, use agent-batch translation.
+- Before choosing the API route, run `scripts/check_api.py`. If it returns `"apiAvailable": false`, skip `api-translate` and use agent-batch translation directly.
 - Extract a compact glossary with term agents before agent-batch translation unless the user says no auto glossary.
 - Default active agent cap for the batch route: `16`. If the user says "use N parallel agents/subagents", pass `--max-parallel-agents N`.
+- Do not run a preliminary smoke test or page-only trial unless the user explicitly asks for one. After the target PDF and target language are known, translate the requested scope directly; default to the full PDF.
+- For agent-batch fallback, dispatch term and translation subagents with a cheap, low-latency model by default when the host allows model choice. Escalate only for failed validation, poor quality, or an explicit user/model requirement.
+- Agent-batch subagents must produce term targets and segment targets themselves from the assigned JSONL, context pack, and glossary. Do not use third-party translation APIs, online translators, local MT/translation libraries, browser/search tools, `pdf2zh`/BabelDOC translation modes, or another agent/process to generate translated text.
+- Never use `pdf2zh` public machine-translation backends such as `--google`, `--bing`, `GoogleTranslator`, `BingTranslator`, `deep-translator`, `googletrans`, or `translatepy`. If the configured API is unavailable, fail closed into the agent-batch route.
 - Attach final PDFs to the original Zotero parent item.
 - Use Python scripts only; no PowerShell wrapper is required.
 - Keep BabelDOC internal auto glossary disabled during collect/render; use this skill's glossary CSV only on the agent-batch/API prompt side.
@@ -34,25 +38,27 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
 ## Workflow
 
 1. Identify the active Zotero regular item and PDF attachment path.
-2. If the user provides API settings, save them first:
+2. Check whether the configured OpenAI-compatible API is available. Pass API settings here if the user supplied them in the same prompt:
 
    ```bash
-   python scripts/run_pdf2zh.py --phase configure-api --api-port "<port>" --api-key "<key>" --api-model "<model>"
+   python scripts/check_api.py --api-port "<port>" --api-key "<key>" --api-model "<model>"
    ```
 
-3. Run collect. Pass API settings here instead if the user provided them in the same prompt:
+   If the JSON result has `"apiAvailable": false`, plan the agent-batch route, pass `--force-agent-route` during collect, and skip `api-translate`.
+
+3. Run collect. Pass API settings here instead if the user provided them in the same prompt, and include `--force-agent-route` if `check_api.py` returned false:
 
    ```bash
    python scripts/run_pdf2zh.py --input-pdf "<pdf>" --lang-out "<target-language>"
    ```
 
-4. Try API translation unless the user explicitly asks for the agent route:
+4. If `check_api.py` returned `"apiAvailable": true`, run API translation unless the user explicitly asks for the agent route:
 
    ```bash
    python scripts/run_pdf2zh.py --phase api-translate --run-dir "<run-dir>"
    ```
 
-5. If API translation validates successfully, skip to render. If it reports `api_unavailable`, read `references/workflow.md`, `context_pack.md`, and `segments.jsonl`, then use the agent-batch route.
+5. If API translation validates successfully, skip to render. If `check_api.py` returned false or `api-translate` reports `api_unavailable`, read `references/workflow.md`, `context_pack.md`, and `segments.jsonl`, then use the agent-batch route.
 6. Unless the user says no auto glossary, build term batches:
 
    ```bash
@@ -102,6 +108,7 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
 - API key: pass `--api-key "<key>"`; it is stored under `.runtime/api_config.json` and not written to the run manifest.
 - API model: pass `--api-model "<model>"`; if omitted, `configure-api` may discover the first model from `/v1/models`.
 - API parameters: pass `--api-temperature`, `--api-max-tokens`, `--api-qps`, `--api-timeout`, `--api-retries`, or `--api-extra-instruction`.
+- API check: pass `--api-base-url`, `--api-port`, `--api-key`, `--api-model`, `--api-timeout`, `--api-config`, or `--force-agent-route` to `scripts/check_api.py`; branch on the returned `apiAvailable` boolean.
 - Force agent route: pass `--force-agent-route` or skip `api-translate`.
 - Parallel count: pass `--max-parallel-agents <N>`.
 - No auto glossary: pass `--no-auto-glossary` and skip term batches.
