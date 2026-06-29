@@ -1,79 +1,67 @@
 # Zotero Attachment Import
 
-Use Zotero MCP `zotero_script` in `mode: "write"` after the render phase has produced final PDF files. Attach every final PDF listed in `run_manifest.json` unless the user asked for only one output mode.
+Attach rendered PDFs with the bundled Zotero Translate Bridge after the render phase has written `finalPdfs` into `run_manifest.json`.
 
-## Attach One PDF
+The bridge is intentionally narrow: it exposes only `health`, `attach`, and `verify` on Zotero's local HTTP server, protected by a generated local token. It does not provide arbitrary JavaScript execution.
 
-Replace `PARENT_ITEM_ID`, `PDF_PATH`, and `TITLE`.
+## Ensure Bridge
 
-```javascript
-const parentItemID = PARENT_ITEM_ID;
-const pdfPath = String.raw`PDF_PATH`;
-const title = "TITLE";
+Probe first:
 
-const parent = await Zotero.Items.getAsync(parentItemID);
-if (!parent || !parent.isRegularItem()) {
-  throw new Error(`Parent Zotero item not found or not regular: ${parentItemID}`);
-}
-env.snapshot(parent);
-
-if (typeof IOUtils !== "undefined" && !(await IOUtils.exists(pdfPath))) {
-  throw new Error(`PDF does not exist: ${pdfPath}`);
-}
-
-const attachment = await Zotero.Attachments.importFromFile({
-  file: pdfPath,
-  parentItemID,
-  title,
-  contentType: "application/pdf",
-});
-
-const attachmentID = attachment.id;
-env.addUndoStep(async () => {
-  const created = await Zotero.Items.getAsync(attachmentID);
-  if (created) {
-    await created.eraseTx();
-  }
-});
-
-env.log(JSON.stringify({
-  attached: {
-    id: attachment.id,
-    key: attachment.key,
-    title: attachment.getField("title"),
-    path: await attachment.getFilePathAsync?.(),
-  },
-  parent: {
-    id: parent.id,
-    key: parent.key,
-    title: parent.getField("title"),
-  },
-}, null, 2));
+```bash
+python "$skillDir/scripts/ensure_zotero_bridge.py" --probe
 ```
 
-## Verify Attachments
+If the bridge is unavailable, build the XPI, place the bridge package into the active Zotero profile, restart Zotero, and wait for the local endpoint:
 
-After attaching all generated PDFs, verify with a read-only script:
-
-```javascript
-const parent = await Zotero.Items.getAsync(PARENT_ITEM_ID);
-const attachments = [];
-for (const id of await parent.getAttachments()) {
-  const att = await Zotero.Items.getAsync(id);
-  attachments.push({
-    id: att.id,
-    key: att.key,
-    title: att.getField("title"),
-    path: await att.getFilePathAsync?.(),
-    contentType: att.attachmentContentType,
-  });
-}
-env.log(JSON.stringify({ parent: parent.getField("title"), attachments }, null, 2));
+```bash
+python "$skillDir/scripts/ensure_zotero_bridge.py" \
+  --install \
+  --restart-zotero
 ```
+
+The script writes runtime-only files under `skills/zotero-translate/.runtime/zotero-translate-bridge/`:
+
+- `zotero-translate-bridge.xpi`
+- `bridge_config.json`
+- `build/`
+
+These files contain the generated local token and must stay out of git.
+
+If the script returns `installed_unloaded`, Zotero did not load the bridge endpoint after restart. Do not attach or clean artifacts. Report the `probe` and `install` fields from the script output; the generated XPI path is in `xpiPath`.
+
+## Attach And Verify
+
+Attach every final PDF listed in `run_manifest.json`. Prefer the numeric parent item ID from the selected Zotero regular item:
+
+```bash
+python "$skillDir/scripts/attach_with_bridge.py" \
+  --run-dir "<run-dir>" \
+  --parent-item-id "<zotero-parent-item-id>"
+```
+
+If only the item key is available, pass both key and library ID:
+
+```bash
+python "$skillDir/scripts/attach_with_bridge.py" \
+  --run-dir "<run-dir>" \
+  --parent-key "<zotero-parent-key>" \
+  --library-id "<zotero-library-id>"
+```
+
+`attach_with_bridge.py` calls bridge `health`, imports each PDF through `Zotero.Attachments.importFromFile`, calls `verify`, and writes `attached`, `attachedAt`, and `attachmentVerification` back into the run manifest.
+
+## Failure Handling
+
+- If probe returns `unauthorized`, rerun `ensure_zotero_bridge.py --install --restart-zotero`; the XPI and config token are out of sync.
+- If probe remains `404 No endpoint found` after install/restart, Zotero did not register the bridge. Do not clean artifacts; report the `installed_unloaded` state and keep the run directory.
+- If attach returns `Parent Zotero regular item not found`, re-identify the selected parent item and retry with its regular-item ID.
+- If attach returns `PDF does not exist`, rerun render or inspect `finalPdfs` in `run_manifest.json`.
+- If verification misses a newly attached ID, do not clean artifacts; rerun `attach_with_bridge.py` and inspect the bridge response.
 
 ## Cleanup
 
-After Zotero verification succeeds, clean intermediate run artifacts unless the user asked to keep them:
+After bridge verification succeeds, clean intermediate run artifacts unless the user asked to keep them:
 
 ```bash
 python "$skillDir/scripts/cleanup_artifacts.py" \

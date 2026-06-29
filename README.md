@@ -19,7 +19,7 @@ English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-T
 
 <p>
   Agent-native Zotero PDF translation powered by pdf2zh and BabelDOC.<br>
-  No Zotero plugin. No manual setup.
+  Builds a minimal local Zotero bridge for attachment import.
 </p>
 
 [Install](#31-installation) · [Quick Start](#32-quick-start) · [CLI Usage](#35-direct-cli-usage) · [Technical Details](#4-technical-details) · [Troubleshooting](#47-troubleshooting)
@@ -44,7 +44,7 @@ Unlike ordinary one-shot PDF translation prompts, this skill keeps a determinist
 | Agent-native fallback | If the API route is unavailable, the active agent dispatches JSONL translation batches and validates the merged results before rendering. |
 | Automatic glossary support | Builds compact term-extraction batches, merges `source,target,tgt_lng` glossary CSV files, and injects matched terms into translation prompts. |
 | Layout-preserving rendering | PDF segmentation, placeholder protection, formula/layout handling, and rendering are delegated to `pdf2zh-next` / BabelDOC. |
-| No Zotero plugin setup | Use Zotero Desktop through your agent connector; no separate Zotero translation plugin is required. |
+| Local Zotero bridge | Builds a minimal local XPI for attachment import and attempts profile-side loading before falling back to a reported installer state. |
 | Self-contained runtime | The skill bootstraps its own Python venv and BabelDOC assets on first use. |
 | Zotero-native output | Final PDFs are attached to the original Zotero parent item. |
 | Explicit target language | The agent must ask for the target language when the prompt does not specify one. |
@@ -70,6 +70,7 @@ The repository currently includes generated SVG diagrams. For a stronger GitHub 
 - **API-first route**: `check_api.py` verifies the configured OpenAI-compatible API before `api-translate` is used.
 - **Agent-batch fallback**: if the API route is unavailable, the skill builds JSONL batches for parallel agent translation with a default active-agent cap of `16`.
 - **Glossary extraction**: term batches and `merge_glossary.py` create BabelDOC-compatible `source,target,tgt_lng` CSV glossaries for prompt injection.
+- **Local Zotero bridge**: `ensure_zotero_bridge.py` builds a minimal XPI and attempts profile-side loading; `attach_with_bridge.py` attaches rendered PDFs through token-protected `health` / `attach` / `verify` endpoints once loaded.
 - **Stronger validation**: `validate_translations.py` checks missing/duplicate/unknown IDs, source/id mismatches, empty targets, protected tokens, rich-text tag order, and reference-like translation warnings.
 - **Python-only workflow**: the skill now uses Python entrypoints only; PowerShell wrappers are no longer required.
 
@@ -113,7 +114,7 @@ This option is shown because Codex has a common local skill directory. The workf
 
 Copy [`skills/zotero-translate`](./skills/zotero-translate) into the skill directory used by your agent, or point the agent at `skills/zotero-translate/SKILL.md`.
 
-The deterministic workflow is Python-based and portable. A compatible agent only needs to read the skill instructions, run local Python scripts, and access Zotero Desktop through a connector or equivalent local automation tool. No Zotero plugin is required.
+The deterministic workflow is Python-based and portable. A compatible agent only needs to read the skill instructions, run local Python scripts, and access Zotero Desktop through a connector or equivalent local automation tool. The skill builds its own minimal Zotero bridge XPI for final attachment import and reports clearly if Zotero does not load it.
 
 ### 3.2 Quick Start
 
@@ -165,12 +166,12 @@ If the prompt does not specify the target language, the agent should ask which l
 | --- | --- |
 | Python 3.10+ | Creates the skill-local virtual environment and runs helper scripts. |
 | Zotero Desktop | Source PDFs and final attachments live in Zotero. |
-| Zotero-capable agent connector | Reads selected items and attaches final PDFs. |
+| Zotero-capable agent connector | Identifies the selected parent item and source PDF. |
 | Internet on first runtime setup | Installs `pdf2zh-next`, `PyMuPDF`, and BabelDOC assets. |
 | OpenAI-compatible API | Optional but preferred for direct translation; requires base URL or port, API key, and model. |
 | Batch-capable agent | Needed only for the fallback route when API translation is unavailable or disabled. |
 
-You do not need to pre-install `pdf2zh`, BabelDOC, or a Zotero translation plugin. The skill prepares its own runtime under the skill directory.
+You do not need to pre-install `pdf2zh`, BabelDOC, or a Zotero translation plugin. The skill prepares its own runtime under the skill directory and builds the bridge XPI on first attachment import.
 
 First runtime setup creates:
 
@@ -183,6 +184,12 @@ Optional API configuration is stored in:
 
 ```text
 skills/zotero-translate/.runtime/api_config.json
+```
+
+Bridge build artifacts and the local token are stored in:
+
+```text
+skills/zotero-translate/.runtime/zotero-translate-bridge/
 ```
 
 These paths are intentionally excluded from version control.
@@ -263,6 +270,18 @@ Render final PDFs:
 python skills/zotero-translate/scripts/run_pdf2zh.py \
   --phase render \
   --run-dir "/tmp/zotero-translate-runs/<run-id>"
+```
+
+Ensure the bridge is installed and attach rendered PDFs:
+
+```bash
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py \
+  --install \
+  --restart-zotero
+
+python skills/zotero-translate/scripts/attach_with_bridge.py \
+  --run-dir "/tmp/zotero-translate-runs/<run-id>" \
+  --parent-item-id "<zotero-parent-item-id>"
 ```
 
 Clean a verified run:
@@ -347,6 +366,7 @@ Important boundaries:
 - API route: Zotero metadata used by the run, extracted PDF segments, glossary terms, and prompt instructions are sent to the configured OpenAI-compatible endpoint.
 - API credentials are stored only in `skills/zotero-translate/.runtime/api_config.json`, which is ignored by git; run manifests do not store plaintext API keys.
 - Agent-batch fallback: extracted PDF segments and glossary terms are visible to the active agent and any batch agents it spawns.
+- Zotero bridge: a local token-protected endpoint is installed inside Zotero only for `health`, `attach`, and `verify`; it does not expose arbitrary JavaScript execution.
 - Context packs redact common local path fields by default.
 - Temporary run directories may contain source and translated text until cleanup.
 
@@ -365,10 +385,14 @@ Important boundaries:
     └── zotero-translate/
         ├── SKILL.md
         ├── agents/
+        ├── assets/
+        │   └── zotero-translate-bridge/
         ├── references/
         └── scripts/
             ├── run_pdf2zh.py
             ├── check_api.py
+            ├── ensure_zotero_bridge.py
+            ├── attach_with_bridge.py
             ├── api_translate_segments.py
             ├── build_batches.py
             ├── build_term_batches.py
@@ -386,7 +410,7 @@ Important boundaries:
 | `api-translate` reports `api_unavailable` | Run `configure-api` with a reachable base URL or port, API key, and model; or use the agent-batch fallback route. |
 | API output fails validation | Re-run with lower temperature, stricter `--api-extra-instruction`, or use fallback batches for the failed segments. |
 | Render reports missing segments | Open `missing_segments.jsonl`, translate the listed ids, append or revalidate, and rerun render. |
-| Zotero attachment fails | Confirm Zotero Desktop is open and your agent has a working Zotero connector. |
+| Zotero attachment fails | Run `ensure_zotero_bridge.py --install --restart-zotero`, then retry `attach_with_bridge.py` with the correct parent item ID. |
 | Disk usage grows | Clean completed run directories; keep `.runtime/venv` and `~/.cache/babeldoc` for faster future runs. |
 
 ## 5. Project Information

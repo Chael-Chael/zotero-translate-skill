@@ -31,7 +31,8 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
 - For agent-batch fallback, dispatch term and translation subagents with a cheap, low-latency model by default when the host allows model choice. Escalate only for failed validation, poor quality, or an explicit user/model requirement.
 - Agent-batch subagents must produce term targets and segment targets themselves from the assigned JSONL, context pack, and glossary. Do not use third-party translation APIs, online translators, local MT/translation libraries, browser/search tools, `pdf2zh`/BabelDOC translation modes, or another agent/process to generate translated text.
 - Never use `pdf2zh` public machine-translation backends such as `--google`, `--bing`, `GoogleTranslator`, `BingTranslator`, `deep-translator`, `googletrans`, or `translatepy`. If the configured API is unavailable, fail closed into the agent-batch route.
-- Attach final PDFs to the original Zotero parent item.
+- Attach final PDFs to the original Zotero parent item through the bundled Zotero Translate Bridge. If the bridge is not loaded, run `scripts/ensure_zotero_bridge.py --install --restart-zotero` to build and load the minimal bridge package, then retry the bridge probe. If the script returns `installed_unloaded`, stop before cleanup and report that Zotero did not accept the profile-side bridge load.
+- The bridge only exposes `health`, `attach`, and `verify` endpoints protected by a local token. Do not add or use generic Zotero JavaScript execution endpoints for this workflow.
 - Use Python scripts only; no PowerShell wrapper is required.
 - Keep BabelDOC internal auto glossary disabled during collect/render; use this skill's glossary CSV only on the agent-batch/API prompt side.
 
@@ -91,8 +92,8 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
    python scripts/run_pdf2zh.py --phase render --run-dir "<run-dir>"
    ```
 
-13. Follow `references/zotero-attach.md` to attach all rendered PDFs to the Zotero parent item.
-14. Verify attachments. Unless the user asked to keep artifacts, clean:
+13. Follow `references/zotero-attach.md` to ensure the bridge is installed, attach all rendered PDFs to the Zotero parent item, and verify the attachments.
+14. Unless the user asked to keep artifacts, clean:
 
    ```bash
    python scripts/cleanup_artifacts.py --run-dir "<run-dir>" --confirm-attached
