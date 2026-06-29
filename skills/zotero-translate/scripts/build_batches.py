@@ -10,6 +10,8 @@ import re
 from pathlib import Path
 from typing import Iterable
 
+from prompts import batch_glossary_text, translation_batch_prompt
+
 
 PLACEHOLDER_PATTERNS = [
     re.compile(r"\{v\d+\}"),
@@ -185,41 +187,14 @@ def compact_segment(segment: dict, glossary_terms: list[tuple[str, str]]) -> dic
     compact = {
         "id": sid,
         "source": text,
-        "normalizedSource": str(segment.get("normalizedSource") or ""),
-        "sourceLanguage": segment.get("sourceLanguage", "en"),
-        "targetLanguage": segment.get("targetLanguage"),
-        "protectedTokens": inferred_tokens(text),
-        "richTextTags": rich_text_tags(text),
-        "sourceCharCount": len(text),
-        "outputInstruction": "Return one JSONL object with id, source, target, and optional notes. Translate the target yourself and put only the translated text in target.",
     }
+    protected_tokens = inferred_tokens(text)
+    if protected_tokens:
+        compact["protectedTokens"] = protected_tokens
     glossary = matched_glossary(glossary_terms, text)
     if glossary:
         compact["glossary"] = glossary
     return compact
-
-
-def prompt_text(target_language: str) -> str:
-    return f"""# Translation Batch
-
-Translate the assigned JSONL segments into {target_language}.
-
-Output JSONL only, one object per input segment:
-
-```json
-{{"id":"<same id>","source":"<same source text>","target":"<translated text>","notes":""}}
-```
-
-Rules:
-
-- Prefer a cheap, low-latency model for this subagent unless the parent agent explicitly selected another model or validation/quality failures require escalation.
-- Produce segment targets yourself from the assigned JSONL, context pack, and glossary.
-- Do not call third-party translation APIs, online translators, local MT/translation libraries, browser/search tools, pdf2zh/BabelDOC translation modes, or another agent/process to generate translated text.
-- Preserve `id` and `source` exactly.
-- Preserve protected tokens, math, citations, URLs, DOIs, arXiv IDs, XML-like tags, and rich-text tags exactly.
-- Use glossary target terms exactly when the source term appears.
-- Put only translated text in `target`; do not add explanations, labels, Markdown fences, or summaries.
-"""
 
 
 def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_terms: list[tuple[str, str]], target_language: str) -> dict:
@@ -230,14 +205,12 @@ def write_batch(output_dir: Path, index: int, segments: list[dict], glossary_ter
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for segment in segments:
             handle.write(json.dumps(compact_segment(segment, glossary_terms), ensure_ascii=False, separators=(",", ":")) + "\n")
-    prompt_path.write_text(prompt_text(target_language), encoding="utf-8")
+    prompt_path.write_text(translation_batch_prompt(target_language), encoding="utf-8")
 
     glossary_path = None
     if batch_terms:
         glossary_path = output_dir / f"batch_{index:04d}.glossary.md"
-        lines = ["# Batch Glossary", "", "Use these mappings exactly when they appear in this batch.", ""]
-        lines.extend(f"- {term['source']} => {term['target']}" for term in batch_terms)
-        glossary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        glossary_path.write_text(batch_glossary_text(batch_terms), encoding="utf-8")
 
     summary = {
         "batch": path.name,

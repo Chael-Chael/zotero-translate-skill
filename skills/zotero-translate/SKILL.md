@@ -98,22 +98,17 @@ collect -> term batches -> term agents -> merge glossary -> translation batches 
    python scripts/cleanup_artifacts.py --run-dir "<run-dir>" --confirm-attached
    ```
 
-## Prompt Mapping
+## Safe Prompt Mapping
+
+Expose only these user-facing controls. Do not invent or pass through other `pdf2zh`/BabelDOC options unless this skill explicitly adds them.
 
 - Pages: pass `--pages "<range>"`.
-- Mono only: pass `--output-mode mono`.
-- Dual/bilingual only: pass `--output-mode dual`.
-- Both/default: pass `--output-mode both`.
-- API base URL or port: pass `--api-base-url "<url>"` or `--api-port "<port>"`.
-- API key: pass `--api-key "<key>"`; it is stored under `.runtime/api_config.json` and not written to the run manifest.
-- API model: pass `--api-model "<model>"`; if omitted, `configure-api` may discover the first model from `/v1/models`.
-- API parameters: pass `--api-temperature`, `--api-max-tokens`, `--api-qps`, `--api-timeout`, `--api-retries`, or `--api-extra-instruction`.
-- API check: pass `--api-base-url`, `--api-port`, `--api-key`, `--api-model`, `--api-timeout`, `--api-config`, or `--force-agent-route` to `scripts/check_api.py`; branch on the returned `apiAvailable` boolean.
-- Force agent route: pass `--force-agent-route` or skip `api-translate`.
+- Output mode: pass `--output-mode mono`, `--output-mode dual`, or `--output-mode both`.
+- Watermark: pass `--watermark-output-mode no_watermark`, `watermarked`, or `both`.
+- API: pass `--api-base-url`, `--api-port`, `--api-key`, `--api-model`, `--api-temperature`, `--api-max-tokens`, `--api-qps`, `--api-timeout`, `--api-retries`, or `--api-extra-instruction`; check availability with `scripts/check_api.py` first and branch on `apiAvailable`.
+- Glossary: pass `--glossary-csv "<csv>"` during `build-batches`; CSV columns are `source,target,tgt_lng`. If the user asks to skip automatic glossary extraction, pass `--no-auto-glossary`.
 - Parallel count: pass `--max-parallel-agents <N>`.
-- No auto glossary: pass `--no-auto-glossary` and skip term batches.
-- User glossary: pass `--glossary-csv "<csv>"` during `build-batches`; CSV columns are `source,target,tgt_lng`.
-- Current-chat only/no batch agents: skip `build-batches`; translate `segments.jsonl` directly and validate it with `validate_translations.py`.
+- Cleanup: honor "keep artifacts" with `--keep-artifacts` or `--cleanup-policy never`; otherwise clean only after Zotero attachment is verified.
 
 ## Validation
 

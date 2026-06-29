@@ -373,6 +373,7 @@ Important boundaries:
             ├── build_batches.py
             ├── build_term_batches.py
             ├── merge_glossary.py
+            ├── prompts.py
             └── validate_translations.py
 ```
 
