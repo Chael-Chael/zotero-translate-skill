@@ -2,12 +2,11 @@
 // bootstrapped plugin conventions: register chrome, then load content script.
 
 var chromeHandle;
-var bridgeScope;
 
 function install(data, reason) {}
 
 async function startup({ id, version, resourceURI, rootURI }, reason) {
-  const resolvedRootURI = rootURI || resourceURI?.spec;
+  var resolvedRootURI = rootURI || resourceURI?.spec;
   const aomStartup = Components.classes[
     "@mozilla.org/addons/addon-manager-startup;1"
   ].getService(Components.interfaces.amIAddonManagerStartup);
@@ -17,33 +16,23 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     ["content", "zotero-translate-bridge", resolvedRootURI + "content/"],
   ]);
 
-  bridgeScope = {
-    rootURI: resolvedRootURI,
-    Zotero,
-    Services,
-    Components,
-    Cc: Components.classes,
-    Ci: Components.interfaces,
-    Cu: Components.utils,
-    console,
-  };
-  bridgeScope._globalThis = bridgeScope;
-  bridgeScope.globalThis = bridgeScope;
+  const ctx = { rootURI: resolvedRootURI };
+  ctx._globalThis = ctx;
 
   Services.scriptloader.loadSubScript(
     resolvedRootURI + "content/scripts/zoteroTranslateBridge.js",
-    bridgeScope,
+    ctx,
   );
 
-  await bridgeScope.ZoteroTranslateBridge.startup({ id, version, rootURI: resolvedRootURI }, reason);
+  await Zotero.ZoteroTranslateBridge.startup({ id, version, rootURI: resolvedRootURI }, reason);
 }
 
 async function onMainWindowLoad({ window }, reason) {
-  await bridgeScope?.ZoteroTranslateBridge?.onMainWindowLoad?.(window, reason);
+  await Zotero.ZoteroTranslateBridge?.onMainWindowLoad?.(window, reason);
 }
 
 async function onMainWindowUnload({ window }, reason) {
-  await bridgeScope?.ZoteroTranslateBridge?.onMainWindowUnload?.(window, reason);
+  await Zotero.ZoteroTranslateBridge?.onMainWindowUnload?.(window, reason);
 }
 
 async function shutdown(data, reason) {
@@ -51,8 +40,8 @@ async function shutdown(data, reason) {
     return;
   }
 
-  await bridgeScope?.ZoteroTranslateBridge?.shutdown?.(data, reason);
-  bridgeScope = null;
+  await Zotero.ZoteroTranslateBridge?.shutdown?.(data, reason);
+  delete Zotero.ZoteroTranslateBridge;
 
   if (chromeHandle) {
     chromeHandle.destruct();

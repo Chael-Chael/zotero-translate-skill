@@ -124,7 +124,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 첨부파일을 다시 쓰기 전에 Zotero에 bridge를 한 번 설치하세요.
 
-1. [`zotero-translate-bridge-0.2.3.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.3.xpi)를 다운로드합니다.
+1. [`zotero-translate-bridge-0.2.4.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.4.xpi)를 다운로드합니다.
 2. Zotero에서 `Tools -> Add-ons`를 엽니다.
 3. gear icon에서 `Install Add-on From File...`을 선택하고 이 XPI를 고릅니다.
 4. Zotero를 재시작합니다.

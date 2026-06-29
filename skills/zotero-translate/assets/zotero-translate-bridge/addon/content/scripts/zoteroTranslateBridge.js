@@ -1,10 +1,11 @@
-var ZoteroTranslateBridge = (() => {
+Zotero.ZoteroTranslateBridge = (() => {
   const BRIDGE_ID = "zotero-translate-bridge@github.com.chael-chael";
-  const BRIDGE_VERSION = "0.2.3";
+  const BRIDGE_VERSION = "0.2.4";
   const BRIDGE_BASE_PATH = "/zotero-translate-bridge";
   const BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge";
   const BRIDGE_TOKEN_HEADER = "x-zotero-translate-bridge-token";
   const BRIDGE_CONFIG_FILE = "zotero-translate-bridge.json";
+  const BRIDGE_TOKEN_PREF = "extensions.zotero.zoterotranslatebridge.token";
 
   let registeredBridgePaths = [];
   let bridgeConfig = null;
@@ -13,8 +14,9 @@ var ZoteroTranslateBridge = (() => {
     if (Zotero?.initializationPromise) {
       await Zotero.initializationPromise;
     }
-    bridgeConfig = await ensureBridgeConfig();
+    bridgeConfig = ensureBridgeConfig();
     registerBridgeEndpoints();
+    await writeBridgeConfigBestEffort(bridgeConfig);
   }
 
   async function shutdown(data, reason) {
@@ -76,39 +78,44 @@ var ZoteroTranslateBridge = (() => {
     return parts.join("");
   }
 
-  async function readBridgeConfig(path) {
+  function getOrCreateToken() {
+    const existing = Zotero.Prefs?.get?.(BRIDGE_TOKEN_PREF, true);
+    if (typeof existing === "string" && existing.trim().length >= 32) {
+      return existing.trim();
+    }
+    const token = generateToken();
+    Zotero.Prefs?.set?.(BRIDGE_TOKEN_PREF, token, true);
+    return token;
+  }
+
+  function ensureBridgeConfig() {
+    const path = bridgeConfigPath();
+    return {
+      schemaVersion: 1,
+      token: getOrCreateToken(),
+      bridgeId: BRIDGE_ID,
+      bridgeUrl: BRIDGE_BASE_URL,
+      configPath: path,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function writeBridgeConfigBestEffort(config) {
     try {
-      if (typeof IOUtils !== "undefined" && await IOUtils.exists(path)) {
-        const text = await IOUtils.readUTF8(path);
-        const parsed = JSON.parse(text);
-        return parsed && typeof parsed === "object" ? parsed : {};
+      const text = JSON.stringify(config, null, 2);
+      if (typeof IOUtils !== "undefined" && typeof IOUtils.writeUTF8 === "function") {
+        await IOUtils.writeUTF8(config.configPath, text);
+        return;
+      }
+      if (typeof OS !== "undefined" && OS.File?.writeAtomic) {
+        await OS.File.writeAtomic(config.configPath, text, {
+          encoding: "utf-8",
+          tmpPath: `${config.configPath}.tmp`,
+        });
       }
     } catch (error) {
       Zotero.logError?.(error);
     }
-    return {};
-  }
-
-  async function writeBridgeConfig(path, config) {
-    if (typeof IOUtils === "undefined" || typeof IOUtils.writeUTF8 !== "function") {
-      throw new Error("IOUtils.writeUTF8 is not available");
-    }
-    await IOUtils.writeUTF8(path, JSON.stringify(config, null, 2));
-  }
-
-  async function ensureBridgeConfig() {
-    const path = bridgeConfigPath();
-    const config = await readBridgeConfig(path);
-    if (!config.token) {
-      config.token = generateToken();
-    }
-    config.schemaVersion = 1;
-    config.bridgeId = BRIDGE_ID;
-    config.bridgeUrl = BRIDGE_BASE_URL;
-    config.configPath = path;
-    config.updatedAt = new Date().toISOString();
-    await writeBridgeConfig(path, config);
-    return config;
   }
 
   function parseBody(options) {

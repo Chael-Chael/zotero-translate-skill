@@ -25,6 +25,7 @@ BRIDGE_ID = "zotero-translate-bridge@github.com.chael-chael"
 BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge"
 BRIDGE_TOKEN_HEADER = "X-Zotero-Translate-Bridge-Token"
 BRIDGE_PROFILE_CONFIG_FILE = "zotero-translate-bridge.json"
+BRIDGE_TOKEN_PREF = "extensions.zotero.zoterotranslatebridge.token"
 
 
 def configure_stdio() -> None:
@@ -188,9 +189,36 @@ def profile_bridge_config_path(profile_dir: Path) -> Path:
     return profile_dir / BRIDGE_PROFILE_CONFIG_FILE
 
 
+def load_bridge_token_from_prefs(profile_dir: Path) -> str:
+    prefs_path = profile_dir / "prefs.js"
+    if not prefs_path.exists():
+        return ""
+    pattern = re.compile(r'user_pref\("([^"]+)",\s*("(?:\\.|[^"])*")\);')
+    for line in prefs_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = pattern.search(line)
+        if not match or match.group(1) != BRIDGE_TOKEN_PREF:
+            continue
+        try:
+            value = json.loads(match.group(2))
+        except json.JSONDecodeError:
+            return ""
+        return value.strip() if isinstance(value, str) else ""
+    return ""
+
+
 def load_profile_bridge_config(profile_dir: Path) -> dict:
     path = profile_bridge_config_path(profile_dir)
     data = read_json(path)
+    if not data.get("token"):
+        token = load_bridge_token_from_prefs(profile_dir)
+        if token:
+            data = {
+                "schemaVersion": 1,
+                "token": token,
+                "bridgeId": BRIDGE_ID,
+                "bridgeUrl": BRIDGE_BASE_URL,
+                "configPath": str(path),
+            }
     if not data.get("token"):
         return {}
     data.setdefault("bridgeUrl", BRIDGE_BASE_URL)

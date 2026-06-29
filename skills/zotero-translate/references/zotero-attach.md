@@ -15,7 +15,7 @@ python "$skillDir/scripts/ensure_zotero_bridge.py" --probe
 If the bridge is unavailable, ask the user to install the release XPI once:
 
 ```text
-https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.3.xpi
+https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.4.xpi
 ```
 
 In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic, declares Zotero `6.999` through `10.99.99` compatibility in the same range style as installed Zotero 9 plugins on this machine, and writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.

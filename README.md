@@ -120,7 +120,7 @@ The deterministic workflow is Python-based and portable. A compatible agent only
 
 Install the bridge once in Zotero for attachment import:
 
-1. Download [`zotero-translate-bridge-0.2.3.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.3.xpi).
+1. Download [`zotero-translate-bridge-0.2.4.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.4.xpi).
 2. In Zotero, open `Tools -> Add-ons`.
 3. Click the gear icon, choose `Install Add-on From File...`, and select the XPI.
 4. Restart Zotero.
