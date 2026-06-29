@@ -18,7 +18,7 @@ If the bridge is unavailable, ask the user to install the release XPI once:
 https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi
 ```
 
-In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic, declares Zotero `7.0` through `9.*` compatibility, and writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.
+In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic, declares Zotero `7.0` through `9.0.*` compatibility, and writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.
 
 For development or local builds, build an XPI manually:
 

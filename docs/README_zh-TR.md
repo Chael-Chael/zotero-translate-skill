@@ -134,7 +134,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-這個 XPI 不包含共享 token，並宣告相容 Zotero `7.0` 到 `9.*`。bridge 首次啟動會在 Zotero profile 中寫入每個使用者自己的 `zotero-translate-bridge.json`。
+這個 XPI 不包含共享 token，並宣告相容 Zotero `7.0` 到 `9.0.*`。bridge 首次啟動會在 Zotero profile 中寫入每個使用者自己的 `zotero-translate-bridge.json`。
 
 <a id="32-quick-start"></a>
 
