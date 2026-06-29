@@ -124,7 +124,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 첨부파일을 다시 쓰기 전에 Zotero에 bridge를 한 번 설치하세요.
 
-1. [`zotero-translate-bridge-0.2.2.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.2.xpi)를 다운로드합니다.
+1. [`zotero-translate-bridge-0.2.3.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.3.xpi)를 다운로드합니다.
 2. Zotero에서 `Tools -> Add-ons`를 엽니다.
 3. gear icon에서 `Install Add-on From File...`을 선택하고 이 XPI를 고릅니다.
 4. Zotero를 재시작합니다.
@@ -134,7 +134,7 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-이 XPI에는 공유 token이 들어 있지 않으며 Zotero 공식 플러그인 호환 형식에 맞춰 Zotero `6.999`부터 `9.0.*`까지의 호환성을 선언합니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
+이 XPI에는 공유 token이 들어 있지 않으며 이 환경에 설치된 Zotero 9 플러그인의 범위 스타일에 맞춰 Zotero `6.999`부터 `10.99.99`까지의 호환성을 선언합니다. bridge는 첫 시작 시 사용자별 `zotero-translate-bridge.json`을 Zotero profile에 씁니다.
 
 <a id="32-quick-start"></a>
 

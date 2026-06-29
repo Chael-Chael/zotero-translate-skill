@@ -1,6 +1,6 @@
 var ZoteroTranslateBridge = (() => {
-  const BRIDGE_ID = "zotero-translate-bridge@codex.local";
-  const BRIDGE_VERSION = "0.2.2";
+  const BRIDGE_ID = "zotero-translate-bridge@github.com.chael-chael";
+  const BRIDGE_VERSION = "0.2.3";
   const BRIDGE_BASE_PATH = "/zotero-translate-bridge";
   const BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge";
   const BRIDGE_TOKEN_HEADER = "x-zotero-translate-bridge-token";

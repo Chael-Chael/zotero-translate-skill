@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-BRIDGE_ID = "zotero-translate-bridge@codex.local"
+BRIDGE_ID = "zotero-translate-bridge@github.com.chael-chael"
 BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge"
 BRIDGE_TOKEN_HEADER = "X-Zotero-Translate-Bridge-Token"
 BRIDGE_PROFILE_CONFIG_FILE = "zotero-translate-bridge.json"

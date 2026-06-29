@@ -120,7 +120,7 @@ The deterministic workflow is Python-based and portable. A compatible agent only
 
 Install the bridge once in Zotero for attachment import:
 
-1. Download [`zotero-translate-bridge-0.2.2.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.2.xpi).
+1. Download [`zotero-translate-bridge-0.2.3.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.3.xpi).
 2. In Zotero, open `Tools -> Add-ons`.
 3. Click the gear icon, choose `Install Add-on From File...`, and select the XPI.
 4. Restart Zotero.
@@ -130,7 +130,7 @@ Install the bridge once in Zotero for attachment import:
 python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 ```
 
-The XPI is generic and does not contain a shared token. It declares Zotero `6.999` through `9.0.*` compatibility, matching Zotero's documented plugin compatibility format. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
+The XPI is generic and does not contain a shared token. It declares Zotero `6.999` through `10.99.99` compatibility, matching the range style used by installed Zotero 9 plugins on this machine. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
 
 ### 3.2 Quick Start
 
