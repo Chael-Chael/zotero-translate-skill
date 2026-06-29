@@ -11,6 +11,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ensure_zotero_bridge import find_zotero_profile, load_profile_bridge_config
+
 
 BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge"
 BRIDGE_TOKEN_HEADER = "X-Zotero-Translate-Bridge-Token"
@@ -68,13 +70,23 @@ def post_json(base_url: str, path: str, token: str, payload: dict, timeout: floa
     return data
 
 
-def load_bridge_config(path: Path) -> dict:
-    if not path.exists():
-        raise FileNotFoundError(f"Bridge config not found. Run ensure_zotero_bridge.py --install first: {path}")
-    config = read_json(path)
-    if not config.get("token"):
-        raise RuntimeError(f"Bridge config has no token: {path}")
-    return config
+def load_bridge_config(path: Path, profile_dir: str | None) -> dict:
+    config = read_json(path) if path.exists() else {}
+    if config.get("token"):
+        return config
+    try:
+        zotero_profile = find_zotero_profile(profile_dir)
+        profile_config = load_profile_bridge_config(zotero_profile)
+    except FileNotFoundError:
+        profile_config = {}
+    if profile_config.get("token"):
+        merged = dict(config)
+        merged.update(profile_config)
+        merged.setdefault("bridgeUrl", BRIDGE_BASE_URL)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write_json(path, merged)
+        return merged
+    raise RuntimeError(f"Bridge config has no token. Install the bridge XPI in Zotero, restart Zotero, then run ensure_zotero_bridge.py --probe: {path}")
 
 
 def resolve_manifest(args: argparse.Namespace) -> tuple[Path, dict]:
@@ -136,6 +148,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bridge-config")
     parser.add_argument("--bridge-url")
     parser.add_argument("--token")
+    parser.add_argument("--profile-dir")
     parser.add_argument("--title")
     parser.add_argument("--title-prefix", default="Zotero Translate")
     parser.add_argument("--timeout", type=float, default=30.0)
@@ -149,7 +162,7 @@ def main() -> int:
     pdfs = final_pdfs(args, manifest)
     parent = parent_payload(args, manifest)
     config_path = Path(args.bridge_config).expanduser().resolve() if args.bridge_config else default_bridge_config_path().resolve()
-    config = load_bridge_config(config_path)
+    config = load_bridge_config(config_path, args.profile_dir)
     base_url = args.bridge_url or config.get("bridgeUrl") or BRIDGE_BASE_URL
     token = args.token or config["token"]
 

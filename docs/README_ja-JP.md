@@ -120,6 +120,22 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 決定的なワークフローは Python ベースで移植可能です。互換 agent に必要なのは、skill 指示を読み、本地 Python スクリプトを実行し、connector または同等のローカル自動化で Zotero Desktop にアクセスすることだけです。skill は最終添付ファイル書き戻し用の最小 Zotero bridge XPI を作成し、Zotero が読み込まない場合は明確に報告します。
 
+#### Zotero Bridge XPI
+
+添付ファイルを書き戻す前に、Zotero に bridge を一度インストールします。
+
+1. [`zotero-translate-bridge.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi) をダウンロードします。
+2. Zotero で `Tools -> Add-ons` を開きます。
+3. gear icon から `Install Add-on From File...` を選び、この XPI を選択します。
+4. Zotero を再起動します。
+5. probe を一度実行して、ローカル bridge token を script に取り込みます。
+
+```bash
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
+```
+
+この XPI に共有 token は含まれません。bridge は初回起動時に、ユーザーごとの `zotero-translate-bridge.json` を Zotero profile に書き込みます。
+
 <a id="32-quick-start"></a>
 
 ### 3.2 クイックスタート
@@ -274,9 +290,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 bridge をインストールし、レンダリング済み PDF を添付:
 
 ```bash
-python skills/zotero-translate/scripts/ensure_zotero_bridge.py \
-  --install \
-  --restart-zotero
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 
 python skills/zotero-translate/scripts/attach_with_bridge.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>" \
@@ -412,7 +426,7 @@ run directory には source text、translated text、glossary terms が含まれ
 | `api-translate` が `api_unavailable` を返す | 到達可能な base URL または port、API key、model で `configure-api` を実行してください。または agent-batch fallback route を使ってください。 |
 | API 出力が検証に失敗する | temperature を下げ、より厳格な `--api-extra-instruction` を追加するか、失敗セグメントを fallback batches に回してください。 |
 | Render が missing segments を報告する | `missing_segments.jsonl` を開き、該当 id を翻訳して追加または再検証し、render を再実行してください。 |
-| Zotero 添付が失敗する | `ensure_zotero_bridge.py --install --restart-zotero` を実行し、正しい親アイテム ID で `attach_with_bridge.py` を再試行してください。 |
+| Zotero 添付が失敗する | Zotero Add-ons で release XPI をインストールして Zotero を再起動し、`ensure_zotero_bridge.py --probe` を実行してから、正しい親アイテム ID で `attach_with_bridge.py` を再試行してください。 |
 | ディスク使用量が増える | 完了した run directories を削除してください。`.runtime/venv` と `~/.cache/babeldoc` は次回以降の高速化のため残せます。 |
 
 ## 5. プロジェクト情報

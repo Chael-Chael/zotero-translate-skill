@@ -10,7 +10,6 @@ import json
 import os
 import platform
 import re
-import secrets
 import shutil
 import subprocess
 import sys
@@ -25,7 +24,7 @@ from pathlib import Path
 BRIDGE_ID = "zotero-translate-bridge@codex.local"
 BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge"
 BRIDGE_TOKEN_HEADER = "X-Zotero-Translate-Bridge-Token"
-TOKEN_PLACEHOLDER = "__ZOTERO_TRANSLATE_BRIDGE_TOKEN__"
+BRIDGE_PROFILE_CONFIG_FILE = "zotero-translate-bridge.json"
 
 
 def configure_stdio() -> None:
@@ -78,14 +77,8 @@ def bridge_source_dir() -> Path:
     return skill_dir() / "assets" / "zotero-translate-bridge"
 
 
-def generate_token() -> str:
-    return secrets.token_urlsafe(32)
-
-
-def load_or_create_config(path: Path, rotate_token: bool) -> dict:
+def load_or_create_config(path: Path) -> dict:
     config = read_json(path)
-    if rotate_token or not config.get("token"):
-        config["token"] = generate_token()
     config.setdefault("schemaVersion", 1)
     config.setdefault("bridgeUrl", BRIDGE_BASE_URL)
     return config
@@ -109,21 +102,15 @@ def reset_directory(path: Path, allowed_parent: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def build_bridge_xpi(config: dict) -> tuple[Path, Path]:
+def build_bridge_xpi(config: dict, xpi_output: str | None = None) -> tuple[Path, Path]:
     source = bridge_source_dir()
     if not (source / "manifest.json").exists() or not (source / "bootstrap.js").exists():
         raise FileNotFoundError(f"Bridge source is incomplete: {source}")
 
     build_dir = runtime_dir() / "build"
-    xpi_path = runtime_dir() / "zotero-translate-bridge.xpi"
+    xpi_path = Path(xpi_output).expanduser().resolve() if xpi_output else runtime_dir() / "zotero-translate-bridge.xpi"
     reset_directory(build_dir, runtime_dir())
     shutil.copytree(source, build_dir, dirs_exist_ok=True)
-
-    bootstrap_path = build_dir / "bootstrap.js"
-    bootstrap = bootstrap_path.read_text(encoding="utf-8")
-    if TOKEN_PLACEHOLDER not in bootstrap:
-        raise RuntimeError(f"Token placeholder not found in {bootstrap_path}")
-    bootstrap_path.write_text(bootstrap.replace(TOKEN_PLACEHOLDER, str(config["token"])), encoding="utf-8")
 
     xpi_path.parent.mkdir(parents=True, exist_ok=True)
     if xpi_path.exists():
@@ -190,6 +177,33 @@ def find_zotero_profile(profile_dir: str | None) -> Path:
         if profile.get("default"):
             return Path(profile["path"]).resolve()
     return Path(existing[0]["path"]).resolve()
+
+
+def profile_bridge_config_path(profile_dir: Path) -> Path:
+    return profile_dir / BRIDGE_PROFILE_CONFIG_FILE
+
+
+def load_profile_bridge_config(profile_dir: Path) -> dict:
+    path = profile_bridge_config_path(profile_dir)
+    data = read_json(path)
+    if not data.get("token"):
+        return {}
+    data.setdefault("bridgeUrl", BRIDGE_BASE_URL)
+    data["profileBridgeConfigPath"] = str(path)
+    return data
+
+
+def import_profile_bridge_config(config: dict, profile_dir: Path | None) -> tuple[dict, bool]:
+    if not profile_dir:
+        return config, False
+    profile_config = load_profile_bridge_config(profile_dir)
+    if not profile_config:
+        return config, False
+    merged = dict(config)
+    for key in ("token", "bridgeUrl", "bridgeId", "configPath", "updatedAt", "profileBridgeConfigPath"):
+        if profile_config.get(key):
+            merged[key] = profile_config[key]
+    return merged, True
 
 
 def install_xpi(profile_dir: Path, xpi_path: Path) -> dict:
@@ -391,16 +405,25 @@ def start_zotero() -> bool:
     return True
 
 
-def wait_for_bridge(config: dict, timeout_seconds: float, probe_timeout: float) -> tuple[bool, dict]:
+def wait_for_bridge(config: dict, timeout_seconds: float, probe_timeout: float, profile_dir: Path | None, config_path: Path) -> tuple[bool, dict, dict]:
     deadline = time.time() + timeout_seconds
     last: dict = {"error": "not probed"}
+    current_config = dict(config)
     while time.time() < deadline:
-        ok, result = probe_bridge(config, probe_timeout)
+        if not current_config.get("token"):
+            current_config, imported = import_profile_bridge_config(current_config, profile_dir)
+            if imported:
+                write_json(config_path, current_config)
+        ok, result = probe_bridge(current_config, probe_timeout)
         if ok and result.get("ok"):
-            return True, result
+            return True, result, current_config
+        if result.get("httpStatus") == 401:
+            current_config, imported = import_profile_bridge_config(current_config, profile_dir)
+            if imported:
+                write_json(config_path, current_config)
         last = result
         time.sleep(1)
-    return False, last
+    return False, last, current_config
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -412,6 +435,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile-dir")
     parser.add_argument("--config")
     parser.add_argument("--rotate-token", action="store_true")
+    parser.add_argument("--xpi-output", help="Write the built bridge XPI to this path.")
     parser.add_argument("--restart-zotero", action="store_true", help="Restart Zotero after installation and wait for the bridge.")
     parser.add_argument("--start-zotero", action="store_true", help="Start Zotero after installation without killing an existing process.")
     parser.add_argument("--wait-seconds", type=float, default=45.0)
@@ -425,17 +449,29 @@ def main() -> int:
 
     if args.probe and not args.install and not args.build_only:
         config = read_json(config_path)
+        profile_dir = None
+        try:
+            profile_dir = find_zotero_profile(args.profile_dir)
+            config, imported = import_profile_bridge_config(config, profile_dir)
+            if imported:
+                write_json(config_path, config)
+        except FileNotFoundError:
+            pass
         ok, result = probe_bridge(config, args.probe_timeout)
         print(json.dumps({
             "status": "ready" if ok and result.get("ok") else "unavailable",
             "bridgeUrl": config.get("bridgeUrl", BRIDGE_BASE_URL),
             "configPath": str(config_path),
+            "profileDir": str(profile_dir) if profile_dir else "",
+            "profileBridgeConfigPath": config.get("profileBridgeConfigPath", ""),
             "probe": result,
         }, ensure_ascii=False, indent=2))
         return 0 if ok and result.get("ok") else 2
 
-    config = load_or_create_config(config_path, args.rotate_token)
-    build_dir, xpi_path = build_bridge_xpi(config)
+    config = load_or_create_config(config_path)
+    if args.rotate_token:
+        config.pop("token", None)
+    build_dir, xpi_path = build_bridge_xpi(config, args.xpi_output)
     profile_dir = None
     install_result = None
 
@@ -474,8 +510,11 @@ def main() -> int:
 
     probe_ok, probe_result = (False, {"status": "skipped"})
     if args.install and (args.restart_zotero or args.start_zotero):
-        probe_ok, probe_result = wait_for_bridge(config, args.wait_seconds, args.probe_timeout)
+        probe_ok, probe_result, config = wait_for_bridge(config, args.wait_seconds, args.probe_timeout, profile_dir, config_path)
     elif args.install and not args.build_only:
+        config, imported = import_profile_bridge_config(config, profile_dir)
+        if imported:
+            write_json(config_path, config)
         probe_ok, probe_result = probe_bridge(config, args.probe_timeout)
 
     if args.install and args.install_mode == "auto" and not (probe_ok and probe_result.get("ok")) and (args.restart_zotero or args.start_zotero):
@@ -496,14 +535,23 @@ def main() -> int:
             write_json(config_path, config)
         started = start_zotero()
         restarted = True
-        probe_ok, probe_result = wait_for_bridge(config, args.wait_seconds, args.probe_timeout)
+        probe_ok, probe_result, config = wait_for_bridge(config, args.wait_seconds, args.probe_timeout, profile_dir, config_path)
 
     status = "ready" if probe_ok and probe_result.get("ok") else ("built" if args.build_only or not args.install else "installed_unloaded")
-    next_step = "Run attach_with_bridge.py after render." if probe_ok and probe_result.get("ok") else (
-        "The bridge package was built/placed but Zotero did not load the endpoint. Install the generated XPI from Zotero Add-ons or retry after restarting Zotero."
-        if args.install else
-        "Run with --install --restart-zotero, then probe again."
-    )
+    if probe_ok and probe_result.get("ok"):
+        next_step = "Run attach_with_bridge.py after render."
+    elif args.install:
+        next_step = (
+            "The bridge package was built/placed but Zotero did not load the endpoint. "
+            "Install the generated XPI from Zotero Add-ons or retry after restarting Zotero."
+        )
+    elif args.xpi_output:
+        next_step = "Install the built XPI from Zotero Add-ons, restart Zotero, then run --probe."
+    else:
+        next_step = (
+            "Install the built XPI from Zotero Add-ons or run --install as a local "
+            "development fallback, then run --probe."
+        )
     output = {
         "status": status,
         "bridgeId": BRIDGE_ID,

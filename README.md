@@ -116,6 +116,22 @@ Copy [`skills/zotero-translate`](./skills/zotero-translate) into the skill direc
 
 The deterministic workflow is Python-based and portable. A compatible agent only needs to read the skill instructions, run local Python scripts, and access Zotero Desktop through a connector or equivalent local automation tool. The skill builds its own minimal Zotero bridge XPI for final attachment import and reports clearly if Zotero does not load it.
 
+#### Zotero Bridge XPI
+
+Install the bridge once in Zotero for attachment import:
+
+1. Download [`zotero-translate-bridge.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi).
+2. In Zotero, open `Tools -> Add-ons`.
+3. Click the gear icon, choose `Install Add-on From File...`, and select the XPI.
+4. Restart Zotero.
+5. Probe once so the script imports the local bridge token:
+
+```bash
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
+```
+
+The XPI is generic and does not contain a shared token. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
+
 ### 3.2 Quick Start
 
 Open Zotero, select a paper item with a PDF attachment, then ask your agent:
@@ -272,12 +288,10 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>"
 ```
 
-Ensure the bridge is installed and attach rendered PDFs:
+Ensure the bridge is loaded and attach rendered PDFs:
 
 ```bash
-python skills/zotero-translate/scripts/ensure_zotero_bridge.py \
-  --install \
-  --restart-zotero
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 
 python skills/zotero-translate/scripts/attach_with_bridge.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>" \
@@ -410,7 +424,7 @@ Important boundaries:
 | `api-translate` reports `api_unavailable` | Run `configure-api` with a reachable base URL or port, API key, and model; or use the agent-batch fallback route. |
 | API output fails validation | Re-run with lower temperature, stricter `--api-extra-instruction`, or use fallback batches for the failed segments. |
 | Render reports missing segments | Open `missing_segments.jsonl`, translate the listed ids, append or revalidate, and rerun render. |
-| Zotero attachment fails | Run `ensure_zotero_bridge.py --install --restart-zotero`, then retry `attach_with_bridge.py` with the correct parent item ID. |
+| Zotero attachment fails | Install the release XPI in Zotero Add-ons, restart Zotero, run `ensure_zotero_bridge.py --probe`, then retry `attach_with_bridge.py` with the correct parent item ID. |
 | Disk usage grows | Clean completed run directories; keep `.runtime/venv` and `~/.cache/babeldoc` for faster future runs. |
 
 ## 5. Project Information

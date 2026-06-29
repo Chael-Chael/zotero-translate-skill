@@ -12,12 +12,19 @@ Probe first:
 python "$skillDir/scripts/ensure_zotero_bridge.py" --probe
 ```
 
-If the bridge is unavailable, build the XPI, place the bridge package into the active Zotero profile, restart Zotero, and wait for the local endpoint:
+If the bridge is unavailable, ask the user to install the release XPI once:
+
+```text
+https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi
+```
+
+In Zotero: `Tools -> Add-ons -> gear icon -> Install Add-on From File...`, then restart Zotero and rerun the probe. The release XPI is generic; it writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile on first startup.
+
+For development or local builds, build an XPI manually:
 
 ```bash
 python "$skillDir/scripts/ensure_zotero_bridge.py" \
-  --install \
-  --restart-zotero
+  --build-only
 ```
 
 The script writes runtime-only files under `skills/zotero-translate/.runtime/zotero-translate-bridge/`:
@@ -28,7 +35,7 @@ The script writes runtime-only files under `skills/zotero-translate/.runtime/zot
 
 These files contain the generated local token and must stay out of git.
 
-If the script returns `installed_unloaded`, Zotero did not load the bridge endpoint after restart. Do not attach or clean artifacts. Report the `probe` and `install` fields from the script output; the generated XPI path is in `xpiPath`.
+If profile-side loading returns `installed_unloaded`, Zotero did not load the bridge endpoint after restart. Do not attach or clean artifacts. Ask the user to install the release XPI through Zotero's Add-ons UI, then rerun `ensure_zotero_bridge.py --probe`.
 
 ## Attach And Verify
 
@@ -53,8 +60,8 @@ python "$skillDir/scripts/attach_with_bridge.py" \
 
 ## Failure Handling
 
-- If probe returns `unauthorized`, rerun `ensure_zotero_bridge.py --install --restart-zotero`; the XPI and config token are out of sync.
-- If probe remains `404 No endpoint found` after install/restart, Zotero did not register the bridge. Do not clean artifacts; report the `installed_unloaded` state and keep the run directory.
+- If probe returns `unauthorized`, restart Zotero and rerun `ensure_zotero_bridge.py --probe`; the script will re-import the per-profile token written by the bridge.
+- If probe remains `404 No endpoint found`, Zotero did not register the bridge. Do not clean artifacts; ask the user to install the release XPI through Zotero's Add-ons UI and restart Zotero.
 - If attach returns `Parent Zotero regular item not found`, re-identify the selected parent item and retry with its regular-item ID.
 - If attach returns `PDF does not exist`, rerun render or inspect `finalPdfs` in `run_manifest.json`.
 - If verification misses a newly attached ID, do not clean artifacts; rerun `attach_with_bridge.py` and inspect the bridge response.

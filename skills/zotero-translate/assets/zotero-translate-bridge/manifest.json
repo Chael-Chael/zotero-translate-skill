@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Translate Bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minimal local bridge for Zotero Translate attachment import.",
   "homepage_url": "https://github.com/Chael-Chael/zotero-translate-skill",
   "author": "Zotero Translate Skill",

@@ -120,6 +120,22 @@ Copy-Item -Recurse -Force ".\zotero-translate-skill\skills\zotero-translate" "$e
 
 確定性流程基於 Python，具有可移植性。相容 agent 只需要能讀取 skill 指令、執行本機 Python 腳本，並透過 connector 或本機自動化存取 Zotero Desktop。skill 會為最終附件寫回建立最小 Zotero bridge XPI，並在 Zotero 未載入時明確回報。
 
+#### Zotero Bridge XPI
+
+首次寫回附件前，在 Zotero 中安裝一次 bridge：
+
+1. 下載 [`zotero-translate-bridge.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge.xpi)。
+2. 在 Zotero 開啟 `Tools -> Add-ons`。
+3. 點擊齒輪，選擇 `Install Add-on From File...`，選擇該 XPI。
+4. 重新啟動 Zotero。
+5. 執行一次 probe，讓腳本匯入本機 bridge token：
+
+```bash
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
+```
+
+這個 XPI 不包含共享 token。bridge 首次啟動會在 Zotero profile 中寫入每個使用者自己的 `zotero-translate-bridge.json`。
+
 <a id="32-quick-start"></a>
 
 ### 3.2 快速開始
@@ -274,9 +290,7 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
 確保 bridge 已安裝並寫回渲染後的 PDF：
 
 ```bash
-python skills/zotero-translate/scripts/ensure_zotero_bridge.py \
-  --install \
-  --restart-zotero
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
 
 python skills/zotero-translate/scripts/attach_with_bridge.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>" \
@@ -412,7 +426,7 @@ skill 只會把抽取出的 PDF 片段傳送到使用者或本機配置選擇的
 | `api-translate` 回傳 `api_unavailable` | 用可達 base URL 或連接埠、API key、model 執行 `configure-api`；或使用 agent-batch fallback route。 |
 | API 輸出驗證失敗 | 降低 temperature，增加更嚴格的 `--api-extra-instruction`，或把失敗片段交給 fallback batches。 |
 | Render 報告缺失片段 | 打開 `missing_segments.jsonl`，翻譯列出的 id，追加或重新驗證，再執行 render。 |
-| Zotero 附件失敗 | 執行 `ensure_zotero_bridge.py --install --restart-zotero`，再用正確的父條目 ID 重試 `attach_with_bridge.py`。 |
+| Zotero 附件失敗 | 在 Zotero Add-ons 中安裝 release XPI 並重新啟動 Zotero，然後執行 `ensure_zotero_bridge.py --probe`，再用正確的父條目 ID 重試 `attach_with_bridge.py`。 |
 | 磁碟占用成長 | 清理已完成的 run directories；保留 `.runtime/venv` 和 `~/.cache/babeldoc` 可加速後續執行。 |
 
 ## 5. 專案資訊

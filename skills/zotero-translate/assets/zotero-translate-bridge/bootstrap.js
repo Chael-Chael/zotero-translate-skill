@@ -1,10 +1,12 @@
 const BRIDGE_ID = "zotero-translate-bridge@codex.local";
-const BRIDGE_VERSION = "0.1.0";
+const BRIDGE_VERSION = "0.1.1";
 const BRIDGE_BASE_PATH = "/zotero-translate-bridge";
+const BRIDGE_BASE_URL = "http://127.0.0.1:23119/zotero-translate-bridge";
 const BRIDGE_TOKEN_HEADER = "x-zotero-translate-bridge-token";
-const BRIDGE_TOKEN = "__ZOTERO_TRANSLATE_BRIDGE_TOKEN__";
+const BRIDGE_CONFIG_FILE = "zotero-translate-bridge.json";
 
 let registeredBridgePaths = [];
+let bridgeConfig = null;
 
 function install(data, reason) {}
 
@@ -12,6 +14,7 @@ async function startup(data, reason) {
   if (Zotero?.initializationPromise) {
     await Zotero.initializationPromise;
   }
+  bridgeConfig = await ensureBridgeConfig();
   registerBridgeEndpoints();
 }
 
@@ -53,7 +56,58 @@ function getHeader(headers, name) {
 }
 
 function isAuthorized(headers) {
-  return Boolean(BRIDGE_TOKEN) && getHeader(headers, BRIDGE_TOKEN_HEADER) === BRIDGE_TOKEN;
+  const token = bridgeConfig?.token || "";
+  return Boolean(token) && getHeader(headers, BRIDGE_TOKEN_HEADER) === token;
+}
+
+function bridgeConfigPath() {
+  const profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
+  profileDir.append(BRIDGE_CONFIG_FILE);
+  return profileDir.path;
+}
+
+function generateToken() {
+  const uuidGenerator = Components.classes["@mozilla.org/uuid-generator;1"].getService(Components.interfaces.nsIUUIDGenerator);
+  const parts = [];
+  for (let index = 0; index < 2; index++) {
+    parts.push(String(uuidGenerator.generateUUID()).replace(/[{}-]/g, ""));
+  }
+  return parts.join("");
+}
+
+async function readBridgeConfig(path) {
+  try {
+    if (typeof IOUtils !== "undefined" && await IOUtils.exists(path)) {
+      const text = await IOUtils.readUTF8(path);
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    }
+  } catch (error) {
+    Zotero.logError?.(error);
+  }
+  return {};
+}
+
+async function writeBridgeConfig(path, config) {
+  if (typeof IOUtils === "undefined" || typeof IOUtils.writeUTF8 !== "function") {
+    throw new Error("IOUtils.writeUTF8 is not available");
+  }
+  await IOUtils.writeUTF8(path, JSON.stringify(config, null, 2));
+}
+
+async function ensureBridgeConfig() {
+  const path = bridgeConfigPath();
+  const config = await readBridgeConfig(path);
+  if (!config.token) {
+    config.token = generateToken();
+  }
+  config.schemaVersion = 1;
+  config.bridgeId = BRIDGE_ID;
+  config.bridgeUrl = BRIDGE_BASE_URL;
+  config.configPath = path;
+  config.updatedAt = new Date().toISOString();
+  await writeBridgeConfig(path, config);
+  return config;
 }
 
 function parseBody(options) {
