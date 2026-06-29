@@ -86,6 +86,21 @@ def bridge_addon_source_dir() -> Path:
     raise FileNotFoundError(f"Bridge source is incomplete: {source}")
 
 
+def bridge_manifest() -> dict:
+    return read_json(bridge_addon_source_dir() / "manifest.json")
+
+
+def expected_bridge_version() -> str:
+    return str(bridge_manifest().get("version") or "")
+
+
+def bridge_probe_matches_expected(result: dict) -> bool:
+    if not result.get("ok"):
+        return False
+    version = expected_bridge_version()
+    return result.get("id") == BRIDGE_ID and (not version or result.get("version") == version)
+
+
 def load_or_create_config(path: Path) -> dict:
     config = read_json(path)
     config.setdefault("schemaVersion", 1)
@@ -316,6 +331,24 @@ def invalidate_zotero_extension_scan_cache(profile_dir: Path) -> dict:
     return {"prefsPath": str(prefs_path), "changed": True, "removed": removed, "backupPath": str(backup_path)}
 
 
+def invalidate_zotero_addon_startup_cache(profile_dir: Path) -> dict:
+    cache_path = profile_dir / "addonStartup.json.lz4"
+    if not cache_path.exists():
+        return {"path": str(cache_path), "changed": False, "reason": "cache not found"}
+    try:
+        cache_path.unlink()
+    except OSError as exc:
+        return {"path": str(cache_path), "changed": False, "error": str(exc)}
+    return {"path": str(cache_path), "changed": True}
+
+
+def invalidate_zotero_addon_caches(profile_dir: Path) -> dict:
+    return {
+        "extensionScanCache": invalidate_zotero_extension_scan_cache(profile_dir),
+        "addonStartupCache": invalidate_zotero_addon_startup_cache(profile_dir),
+    }
+
+
 def bridge_request(url: str, token: str, payload: dict | None, timeout: float) -> tuple[bool, dict]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
@@ -448,7 +481,7 @@ def wait_for_bridge(config: dict, timeout_seconds: float, probe_timeout: float, 
             if imported:
                 write_json(config_path, current_config)
         ok, result = probe_bridge(current_config, probe_timeout)
-        if ok and result.get("ok"):
+        if ok and bridge_probe_matches_expected(result):
             return True, result, current_config
         if result.get("httpStatus") == 401:
             current_config, imported = import_profile_bridge_config(current_config, profile_dir)
@@ -461,6 +494,7 @@ def wait_for_bridge(config: dict, timeout_seconds: float, probe_timeout: float, 
 
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build/install/probe the Zotero Translate bridge XPI.")
+    parser.add_argument("--ensure", action="store_true", help="Probe first; if missing or outdated, install the XPI, restart Zotero, and wait for readiness.")
     parser.add_argument("--install", action="store_true", help="Copy the generated XPI into the Zotero profile extensions directory.")
     parser.add_argument("--install-mode", choices=("auto", "xpi", "proxy"), default="auto")
     parser.add_argument("--build-only", action="store_true")
@@ -479,6 +513,35 @@ def make_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = make_parser().parse_args()
     config_path = Path(args.config).expanduser().resolve() if args.config else default_config_path().resolve()
+    expected_version = expected_bridge_version()
+
+    if args.ensure:
+        config = read_json(config_path)
+        profile_dir = None
+        try:
+            profile_dir = find_zotero_profile(args.profile_dir)
+            config, imported = import_profile_bridge_config(config, profile_dir)
+            if imported:
+                write_json(config_path, config)
+        except FileNotFoundError:
+            pass
+        ok, result = probe_bridge(config, args.probe_timeout)
+        if ok and bridge_probe_matches_expected(result):
+            print(json.dumps({
+                "status": "ready",
+                "bridgeId": BRIDGE_ID,
+                "expectedVersion": expected_version,
+                "bridgeUrl": config.get("bridgeUrl", BRIDGE_BASE_URL),
+                "configPath": str(config_path),
+                "profileDir": str(profile_dir) if profile_dir else "",
+                "profileBridgeConfigPath": config.get("profileBridgeConfigPath", ""),
+                "install": {"mode": "skipped", "reason": "bridge already ready"},
+                "probe": result,
+                "nextStep": "Run attach_with_bridge.py after render.",
+            }, ensure_ascii=False, indent=2))
+            return 0
+        args.install = True
+        args.restart_zotero = True
 
     if args.probe and not args.install and not args.build_only:
         config = read_json(config_path)
@@ -494,6 +557,7 @@ def main() -> int:
         print(json.dumps({
             "status": "ready" if ok and result.get("ok") else "unavailable",
             "bridgeUrl": config.get("bridgeUrl", BRIDGE_BASE_URL),
+            "expectedVersion": expected_version,
             "configPath": str(config_path),
             "profileDir": str(profile_dir) if profile_dir else "",
             "profileBridgeConfigPath": config.get("profileBridgeConfigPath", ""),
@@ -514,11 +578,12 @@ def main() -> int:
             install_result = install_proxy(profile_dir, build_dir)
         else:
             install_result = install_xpi(profile_dir, xpi_path)
-        install_result["extensionScanCache"] = invalidate_zotero_extension_scan_cache(profile_dir)
+        install_result.update(invalidate_zotero_addon_caches(profile_dir))
 
     config.update({
         "updatedAt": utc_now(),
         "bridgeId": BRIDGE_ID,
+        "expectedVersion": expected_version,
         "bridgeUrl": config.get("bridgeUrl") or BRIDGE_BASE_URL,
         "buildDir": str(build_dir),
         "xpiPath": str(xpi_path),
@@ -533,7 +598,7 @@ def main() -> int:
         stop_zotero()
         time.sleep(1)
         if profile_dir and install_result:
-            install_result["extensionScanCacheAfterStop"] = invalidate_zotero_extension_scan_cache(profile_dir)
+            install_result["addonCachesAfterStop"] = invalidate_zotero_addon_caches(profile_dir)
             config["install"] = install_result
             write_json(config_path, config)
         started = start_zotero()
@@ -552,7 +617,7 @@ def main() -> int:
 
     if args.install and args.install_mode == "auto" and not (probe_ok and probe_result.get("ok")) and (args.restart_zotero or args.start_zotero):
         proxy_result = install_proxy(profile_dir, build_dir)
-        proxy_result["extensionScanCache"] = invalidate_zotero_extension_scan_cache(profile_dir)
+        proxy_result.update(invalidate_zotero_addon_caches(profile_dir))
         install_result = {
             "mode": "auto",
             "attempts": [install_result, proxy_result],
@@ -563,7 +628,7 @@ def main() -> int:
         stop_zotero()
         time.sleep(1)
         if profile_dir and install_result:
-            install_result["extensionScanCacheAfterStop"] = invalidate_zotero_extension_scan_cache(profile_dir)
+            install_result["addonCachesAfterStop"] = invalidate_zotero_addon_caches(profile_dir)
             config["install"] = install_result
             write_json(config_path, config)
         started = start_zotero()
@@ -575,19 +640,17 @@ def main() -> int:
         next_step = "Run attach_with_bridge.py after render."
     elif args.install:
         next_step = (
-            "The bridge package was built/placed but Zotero did not load the endpoint. "
-            "Install the generated XPI from Zotero Add-ons or retry after restarting Zotero."
+            "Automatic bridge installation ran, but Zotero did not load the endpoint. "
+            "Do not attach or clean artifacts; inspect Zotero add-on state/logs and rerun this script."
         )
     elif args.xpi_output:
-        next_step = "Install the built XPI from Zotero Add-ons, restart Zotero, then run --probe."
+        next_step = "Run this script with --ensure to install automatically, or inspect the built XPI for release packaging."
     else:
-        next_step = (
-            "Install the built XPI from Zotero Add-ons or run --install as a local "
-            "development fallback, then run --probe."
-        )
+        next_step = "Run this script with --ensure to install automatically and wait for the bridge."
     output = {
         "status": status,
         "bridgeId": BRIDGE_ID,
+        "expectedVersion": expected_version,
         "bridgeUrl": config["bridgeUrl"],
         "configPath": str(config_path),
         "buildDir": str(build_dir),
@@ -602,6 +665,8 @@ def main() -> int:
     print(json.dumps(output, ensure_ascii=False, indent=2))
     if args.build_only or not args.install:
         return 0
+    if args.restart_zotero or args.start_zotero or args.ensure:
+        return 0 if probe_ok and probe_result.get("ok") else 2
     return 0 if install_result else 1
 
 

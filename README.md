@@ -70,7 +70,7 @@ The repository currently includes generated SVG diagrams. For a stronger GitHub 
 - **API-first route**: `check_api.py` verifies the configured OpenAI-compatible API before `api-translate` is used.
 - **Agent-batch fallback**: if the API route is unavailable, the skill builds JSONL batches for parallel agent translation with a default active-agent cap of `16`.
 - **Glossary extraction**: term batches and `merge_glossary.py` create BabelDOC-compatible `source,target,tgt_lng` CSV glossaries for prompt injection.
-- **Local Zotero bridge**: install the release XPI in Zotero Add-ons once; `ensure_zotero_bridge.py --probe` imports the local token, and `attach_with_bridge.py` attaches rendered PDFs through token-protected `health` / `attach` / `verify` endpoints once loaded.
+- **Local Zotero bridge**: `ensure_zotero_bridge.py --ensure` automatically installs or updates the XPI in the Zotero profile, restarts Zotero, imports the local token, and `attach_with_bridge.py` writes rendered PDFs through token-protected `health` / `attach` / `verify` endpoints.
 - **Stronger validation**: `validate_translations.py` checks missing/duplicate/unknown IDs, source/id mismatches, empty targets, protected tokens, rich-text tag order, and reference-like translation warnings.
 - **Python-only workflow**: the skill now uses Python entrypoints only; PowerShell wrappers are no longer required.
 
@@ -118,19 +118,13 @@ The deterministic workflow is Python-based and portable. A compatible agent only
 
 #### Zotero Bridge XPI
 
-Install the bridge once in Zotero for attachment import:
-
-1. Download [`zotero-translate-bridge-0.2.4.xpi`](https://github.com/Chael-Chael/zotero-translate-skill/raw/main/assets/zotero-translate-bridge-0.2.4.xpi).
-2. In Zotero, open `Tools -> Add-ons`.
-3. Click the gear icon, choose `Install Add-on From File...`, and select the XPI.
-4. Restart Zotero.
-5. Probe once so the script imports the local bridge token:
+The agent installs the bridge automatically when attachment import is needed:
 
 ```bash
-python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --ensure
 ```
 
-The XPI is generic and does not contain a shared token. It declares Zotero `6.999` through `10.99.99` compatibility, matching the range style used by installed Zotero 9 plugins on this machine. On first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json` in the Zotero profile; the probe/attach scripts read that local file.
+`--ensure` probes the loaded bridge, compares its version with the bundled manifest, and if missing or outdated builds the XPI, copies it into the Zotero profile, clears add-on scan caches, restarts Zotero, and waits for the token-protected `health` endpoint. The XPI is generic and does not contain a shared token. It declares Zotero `6.999` through `10.99.99` compatibility; on first Zotero startup, the bridge writes a per-profile token to `zotero-translate-bridge.json`.
 
 ### 3.2 Quick Start
 
@@ -288,10 +282,10 @@ python skills/zotero-translate/scripts/run_pdf2zh.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>"
 ```
 
-Ensure the bridge is loaded and attach rendered PDFs:
+Ensure the bridge automatically and attach rendered PDFs:
 
 ```bash
-python skills/zotero-translate/scripts/ensure_zotero_bridge.py --probe
+python skills/zotero-translate/scripts/ensure_zotero_bridge.py --ensure
 
 python skills/zotero-translate/scripts/attach_with_bridge.py \
   --run-dir "/tmp/zotero-translate-runs/<run-id>" \
@@ -424,7 +418,7 @@ Important boundaries:
 | `api-translate` reports `api_unavailable` | Run `configure-api` with a reachable base URL or port, API key, and model; or use the agent-batch fallback route. |
 | API output fails validation | Re-run with lower temperature, stricter `--api-extra-instruction`, or use fallback batches for the failed segments. |
 | Render reports missing segments | Open `missing_segments.jsonl`, translate the listed ids, append or revalidate, and rerun render. |
-| Zotero attachment fails | Install the release XPI in Zotero Add-ons, restart Zotero, run `ensure_zotero_bridge.py --probe`, then retry `attach_with_bridge.py` with the correct parent item ID. |
+| Zotero attachment fails | Run `ensure_zotero_bridge.py --ensure` and inspect its JSON/stdout/stderr. If it exits ready, retry `attach_with_bridge.py` with the correct parent item ID. |
 | Disk usage grows | Clean completed run directories; keep `.runtime/venv` and `~/.cache/babeldoc` for faster future runs. |
 
 ## 5. Project Information
